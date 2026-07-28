@@ -1,5 +1,7 @@
 /** Typed API client. Policy outcomes surface as structured errors. */
 
+import { DEMO, DEMO_BLOCKED_MESSAGE, demoImageUrl, demoResponse } from "./demo";
+
 export interface PolicyDecision {
   policy_id: string;
   action: string;
@@ -28,12 +30,25 @@ export function setToken(token: string): void {
 
 /** For <img> tags and EventSource, which cannot carry headers. */
 export function authedUrl(path: string): string {
+  if (DEMO) {
+    const mapped = demoImageUrl(path);
+    if (mapped) return mapped;
+    return path;
+  }
   const token = getToken();
   if (!token) return path;
   return path + (path.includes("?") ? "&" : "?") + "token=" + encodeURIComponent(token);
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  if (DEMO) {
+    if (init?.method && init.method !== "GET") {
+      throw new ApiError(400, "demo", [], DEMO_BLOCKED_MESSAGE);
+    }
+    const canned = demoResponse(path);
+    if (canned !== undefined) return canned as T;
+    throw new ApiError(404, "demo", [], "not part of the demo dataset");
+  }
   const token = getToken();
   const res = await fetch(path, {
     ...init,

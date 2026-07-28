@@ -6,6 +6,7 @@ import {
 import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { api, ApiError, authedUrl, Escalation, FeedEvent, getToken, setToken } from "./api";
+import { DEMO, startDemoFeed } from "./demo";
 import { useLang, useT } from "./i18n";
 import Command from "./pages/Command";
 import Corpus from "./pages/Corpus";
@@ -59,6 +60,9 @@ function PolicyFeed() {
   const t = useT();
   const [events, setEvents] = useState<FeedEvent[]>([]);
   useEffect(() => {
+    if (DEMO) {
+      return startDemoFeed((e) => setEvents((prev) => [e, ...prev].slice(0, 60)));
+    }
     const source = new EventSource(authedUrl("/api/feed"));
     const onEvent = (e: MessageEvent) => {
       try {
@@ -155,6 +159,13 @@ export default function App() {
   const { lang, setLang } = useLang();
   return (
     <TokenGate>
+    {DEMO && (
+      <div className="bg-amber-flag text-white text-xs text-center py-1.5 px-3">
+        Demo preview with sample data — actions are disabled. The real system runs
+        locally with <code className="font-mono">make dev</code> (kernel, policies,
+        ledger and asset library are local-first by design).
+      </div>
+    )}
     <div className="min-h-screen flex">
       <aside className="w-56 shrink-0 border-e border-stone-200 bg-white p-4 flex flex-col gap-6">
         <div>

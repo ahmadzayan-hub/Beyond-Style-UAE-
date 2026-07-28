@@ -12,6 +12,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, ShieldAlert } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, AgentInfo, authedUrl, CorpusHealth, Escalation, FeedEvent } from "../api";
+import { DEMO, startDemoFeed } from "../demo";
 import { useT } from "../i18n";
 
 const DEFAULT_PERSONAS: Record<string, string> = {
@@ -139,6 +140,9 @@ export default function Command() {
   });
 
   useEffect(() => {
+    if (DEMO) {
+      return startDemoFeed((e) => setEvents((prev) => [e, ...prev].slice(0, 40)));
+    }
     const source = new EventSource(authedUrl("/api/feed"));
     const onEvent = (e: MessageEvent) => {
       try {
