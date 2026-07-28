@@ -1,0 +1,17 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+var/
+ui/node_modules/
+ui/dist/
+library/originals/*
+library/meta/*
+library/inbox/*
+corpus/*
+exports/internal_concepts/*
+exports/catalogue/*
+!**/.gitkeep
+.pytest_cache/
+.DS_Store
