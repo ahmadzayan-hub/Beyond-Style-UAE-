@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import {
-  Archive, BadgeCheck, Gem, Hammer, Landmark, Languages, LineChart,
+  Archive, BadgeCheck, Cpu, Gem, Hammer, Landmark, Languages, LineChart,
   ScrollText, ShieldAlert,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
-import { api, Escalation, FeedEvent } from "./api";
+import { api, ApiError, authedUrl, Escalation, FeedEvent, getToken, setToken } from "./api";
 import { useLang, useT } from "./i18n";
+import Command from "./pages/Command";
 import Corpus from "./pages/Corpus";
 import Custody from "./pages/Custody";
 import Studio from "./pages/Studio";
@@ -14,6 +15,7 @@ import Trends from "./pages/Trends";
 import Workshop from "./pages/Workshop";
 
 const NAV = [
+  { to: "/command", key: "command", icon: Cpu },
   { to: "/custody", key: "custody", icon: Archive },
   { to: "/corpus", key: "corpus", icon: Landmark },
   { to: "/trends", key: "trends", icon: LineChart },
@@ -21,11 +23,43 @@ const NAV = [
   { to: "/workshop", key: "workshop", icon: Hammer },
 ];
 
+function TokenGate({ children }: { children: React.ReactNode }) {
+  const t = useT();
+  const [draft, setDraft] = useState(getToken());
+  const probe = useQuery({
+    queryKey: ["auth-probe", getToken()],
+    queryFn: () => api.get<{ ok: boolean }>("/api/policies"),
+    retry: false,
+  });
+  const unauthenticated =
+    probe.error instanceof ApiError && (probe.error as ApiError).status === 401;
+  if (!unauthenticated) return <>{children}</>;
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-stone-25">
+      <div className="card p-6 w-96 space-y-3">
+        <h2 className="font-display text-lg">{t("token_title")}</h2>
+        <p className="text-xs text-stone-400">{t("token_hint")}</p>
+        <input
+          className="border border-stone-300 rounded px-3 py-2 text-sm w-full font-mono"
+          type="password"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && (setToken(draft), location.reload())}
+        />
+        <button className="btn-primary w-full"
+                onClick={() => { setToken(draft); location.reload(); }}>
+          {t("connect")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function PolicyFeed() {
   const t = useT();
   const [events, setEvents] = useState<FeedEvent[]>([]);
   useEffect(() => {
-    const source = new EventSource("/api/feed");
+    const source = new EventSource(authedUrl("/api/feed"));
     const onEvent = (e: MessageEvent) => {
       try {
         const data = JSON.parse(e.data) as FeedEvent;
@@ -102,9 +136,10 @@ function Escalations() {
             </button>
             <button
               className="btn !py-0.5 !px-2 !text-xs !text-deny"
-              onClick={() =>
-                api.post(`/api/escalations/${e.id}/resolve`, { decision: "rejected" }).then(() => refetch())
-              }
+              onClick={() => {
+                if (!window.confirm(t("confirm_reject"))) return;
+                api.post(`/api/escalations/${e.id}/resolve`, { decision: "rejected" }).then(() => refetch());
+              }}
             >
               {t("reject")}
             </button>
@@ -119,6 +154,7 @@ export default function App() {
   const t = useT();
   const { lang, setLang } = useLang();
   return (
+    <TokenGate>
     <div className="min-h-screen flex">
       <aside className="w-56 shrink-0 border-e border-stone-200 bg-white p-4 flex flex-col gap-6">
         <div>
@@ -150,7 +186,8 @@ export default function App() {
       </aside>
       <main className="flex-1 p-6 max-w-6xl">
         <Routes>
-          <Route path="/" element={<Navigate to="/custody" replace />} />
+          <Route path="/" element={<Navigate to="/command" replace />} />
+          <Route path="/command" element={<Command />} />
           <Route path="/custody" element={<Custody />} />
           <Route path="/corpus" element={<Corpus />} />
           <Route path="/trends" element={<Trends />} />
@@ -163,5 +200,6 @@ export default function App() {
         <PolicyFeed />
       </aside>
     </div>
+    </TokenGate>
   );
 }

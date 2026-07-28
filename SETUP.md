@@ -19,6 +19,41 @@ make test      # full policy/kernel/pipeline test suite
 full provenance chain to stdout. `make verify-ledger` recomputes the audit
 ledger hash chain.
 
+## API authentication (always on)
+
+Every `/api/*` route except `/api/health` requires a bearer token. Set
+`BSOS_API_TOKEN` in `.env`, or let BSOS generate one at first boot — it is
+written to `var/api-token.txt` (0600, never included in backups) and the
+generation is ledgered. The UI asks for the token once and keeps it in the
+browser; images and the SSE feed pass it as a `?token=` query parameter
+because those contexts cannot set headers.
+
+## Backups and the ledger anchor
+
+The audit ledger is a legal asset stored in `var/`. Run `make backup`
+(or `bsos backup --dest <dir>`) to zip `var/` and write the current ledger
+head hash to a companion file — store that head file **off the machine**; it
+is the tamper anchor that proves the chain was not rewritten. The command
+refuses to archive a ledger that fails verification. Schedule it:
+
+- macOS/Linux cron: `0 8 * * * cd /path/to/bsos && make backup`
+- Windows Task Scheduler: run `scripts\dev.ps1`'s venv python with
+  `-m bsos.cli backup` daily.
+
+## Database migrations
+
+Schema changes ship as Alembic migrations (`migrations/`). On upgrade run
+`make migrate` (SQLite batch mode is configured). `requirements.lock`
+(regenerate with `make lock`) pins the Python environment; CI installs from
+ranges but the lockfile records the tested set.
+
+## CI
+
+`.github/workflows/ci.yml` runs on every push: backend tests + a
+fresh-database migration check, UI type-check + build, and a report-only
+audit job (pip-audit + npm audit) that surfaces advisories without blocking
+compliance fixes.
+
 ## Meta Graph API (Business Discovery + own media)
 
 BSOS talks to Instagram **only** through the official Graph API (kernel policy

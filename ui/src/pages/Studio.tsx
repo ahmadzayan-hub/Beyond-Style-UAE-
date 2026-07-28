@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Info, Wand2, XCircle } from "lucide-react";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { api, Brief, Concept } from "../api";
+import { api, authedUrl, Brief, Concept } from "../api";
 import { useT } from "../i18n";
 
 const MIN_SOURCES = 3;
@@ -133,7 +133,7 @@ export default function Studio() {
           const passed = gate.passed;
           return (
             <figure key={c.id} className="card overflow-hidden relative">
-              <img src={`/api/concepts/${c.id}/image`} alt={`concept ${c.id}`}
+              <img src={authedUrl(`/api/concepts/${c.id}/image`)} alt={`concept ${c.id}`}
                    className="aspect-square object-cover w-full" loading="lazy" />
               {/* visible CONCEPT_ONLY overlay on every preview */}
               <div className="absolute top-2 start-2 chip !bg-white/85 !text-stone-500 tracking-widest">
@@ -143,7 +143,15 @@ export default function Studio() {
                 <div className="flex items-center justify-between">
                   <span>#{c.id} · {c.model_id}</span>
                   {passed === true && (
-                    <span className="text-ok flex items-center gap-1"><CheckCircle2 size={12} /> {t("gate_passed")}</span>
+                    <span className="text-ok flex items-center gap-1">
+                      <CheckCircle2 size={12} /> {t("gate_passed")}
+                      {gate.advisory && (
+                        <span className="chip !border-amber-flag/50 !text-amber-flag"
+                              title={t("advisory_gate_note")}>
+                          {t("advisory")}
+                        </span>
+                      )}
+                    </span>
                   )}
                   {passed === false && (
                     <span className="text-amber-flag flex items-center gap-1">

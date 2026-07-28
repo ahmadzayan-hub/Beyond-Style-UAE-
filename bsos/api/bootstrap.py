@@ -107,6 +107,10 @@ def build_kernel(root: Path | None = None) -> Kernel:
             bucket=TokenBucket(capacity=int(policy_engine.thresholds["graph_rate_limit_per_hour"])),
         )
 
+    from bsos.kernel import metrics
+
+    metrics.attach_to_bus(bus)
+
     grants = GrantRegistry()
     kernel = Kernel(registry, policy_engine, ledger, bus, grants, paths,
                     db_factory=db_factory, adapters=adapters)

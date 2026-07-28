@@ -55,6 +55,41 @@ const STRINGS: Record<string, { en: string; ar: string }> = {
   open_questions: { en: "Open questions", ar: "أسئلة معلقة" },
   nearest_refs: { en: "Nearest references", ar: "أقرب المراجع" },
   similarity: { en: "similarity", ar: "تشابه" },
+  command: { en: "Command", ar: "مركز القيادة" },
+  advisory: { en: "advisory", ar: "استرشادي" },
+  advisory_gate_note: {
+    en: "Gate ran on the development embedder — treat this pass as advisory until CLIP is installed and tuned.",
+    ar: "عملت البوابة على نموذج تطويري — اعتبر هذا الاجتياز استرشاديًا حتى تثبيت CLIP ومعايرته.",
+  },
+  confirm_ingest: {
+    en: "Ingest {n} file(s) from the inbox under this licence?",
+    ar: "معالجة {n} ملفًا من صندوق الوارد بموجب هذه الرخصة؟",
+  },
+  confirm_export: {
+    en: "Export {n} workshop photograph(s) to the catalogue?",
+    ar: "تصدير {n} صورة ورشة إلى الكتالوج؟",
+  },
+  confirm_reject: {
+    en: "Reject this escalation? The decision is recorded in the ledger.",
+    ar: "رفض هذا التصعيد؟ يُسجل القرار في السجل.",
+  },
+  token_title: { en: "API token required", ar: "مطلوب رمز الدخول" },
+  token_hint: {
+    en: "Paste the token from var/api-token.txt (or BSOS_API_TOKEN). It stays in this browser.",
+    ar: "الصق الرمز من var/api-token.txt (أو BSOS_API_TOKEN). يبقى في هذا المتصفح.",
+  },
+  connect: { en: "Connect", ar: "اتصال" },
+  compose_brief: { en: "Compose brief", ar: "إنشاء موجز" },
+  pending: { en: "pending", ar: "قيد الانتظار" },
+  no_items: { en: "Nothing here yet.", ar: "لا شيء هنا بعد." },
+  core_label: { en: "Orchestrator core", ar: "نواة التنسيق" },
+  synapse_load: { en: "Synapse load", ar: "حمل الاشتباك" },
+  synapse_sub: { en: "kernel tool-call activity, last 100 ledger events", ar: "نشاط استدعاءات الأدوات، آخر ١٠٠ حدث" },
+  coherence: { en: "Quantum coherence", ar: "التماسك الكمي" },
+  coherence_sub: { en: "corpus readiness vs the P4 floor", ar: "جاهزية المكتبة مقابل أرضية القاعدة ٤" },
+  intelligence_stream: { en: "Intelligence stream", ar: "بث الاستخبارات" },
+  upload_avatar: { en: "photo", ar: "صورة" },
+  open_decisions: { en: "open decisions", ar: "قرارات معلقة" },
 };
 
 const LangContext = createContext<{ lang: Lang; setLang: (l: Lang) => void }>({

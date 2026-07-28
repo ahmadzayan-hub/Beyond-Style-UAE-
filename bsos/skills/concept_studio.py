@@ -185,8 +185,17 @@ def originality_gate(ctx: ToolContext, concept_id: int) -> dict[str, Any]:
     phash_fail = min_distance is not None and min_distance < min_phash
     passed = not (similarity_fail or phash_fail)
 
+    # A pass on a non-production embedder is an ADVISORY opinion, not a
+    # defensible originality decision. The flag travels with the result into
+    # the DB, the provenance chain, and the UI.
+    advisory = "clip" not in embedder.describe().lower()
+
     result = {
         "concept_id": concept_id, "passed": passed,
+        "advisory": advisory,
+        "advisory_note": ("" if not advisory else
+                          "gate ran on a development embedder; install bsos[clip] and "
+                          "tune per docs/threshold-tuning.md before relying on this result"),
         "max_similarity": round(max_sim, 4), "threshold": max_sim_threshold,
         "nearest": [{"key": k, "similarity": round(s, 4)} for k, s in nearest],
         "phash_min_distance": min_distance, "phash_threshold": min_phash,
@@ -196,6 +205,10 @@ def originality_gate(ctx: ToolContext, concept_id: int) -> dict[str, Any]:
                     (("similarity_above_threshold", similarity_fail),
                      ("perceptual_hash_too_close", phash_fail)) if fail],
     }
+    if not passed:
+        from bsos.kernel.metrics import GATE_REJECTIONS
+
+        GATE_REJECTIONS.inc()
     concept.gate_result = result
     concept.status = "gate_passed" if passed else "gate_rejected"
     ctx.db.add(concept)

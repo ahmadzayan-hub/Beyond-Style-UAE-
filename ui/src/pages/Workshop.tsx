@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, PackageCheck, Wrench } from "lucide-react";
 import { useRef, useState } from "react";
-import { api, Concept, Spec } from "../api";
+import { api, authedUrl, Concept, Spec } from "../api";
 import { useT } from "../i18n";
 
 export default function Workshop() {
@@ -44,7 +44,7 @@ export default function Workshop() {
       const form = new FormData();
       form.append("file", file);
       form.append("category", category);
-      const res = await fetch("/api/photographs", { method: "POST", body: form });
+      const res = await fetch(authedUrl("/api/photographs"), { method: "POST", body: form });
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
@@ -142,7 +142,11 @@ export default function Workshop() {
           <PackageCheck size={15} /> {t("export")}
         </h3>
         <p className="text-xs text-stone-400 mb-2">{t("export_note")}</p>
-        <button className="btn-primary" disabled={runExport.isPending} onClick={() => runExport.mutate()}>
+        <button className="btn-primary" disabled={runExport.isPending} onClick={async () => {
+          const sel = await api.get<{ assets: unknown[] }>("/api/assets?origin=workshop_photograph");
+          const n = sel.assets.length;
+          if (n === 0 || window.confirm(t("confirm_export").replace("{n}", String(n)))) runExport.mutate();
+        }}>
           {t("export")}: flat + tree + products.json
         </button>
         {exportResult && <p className="text-ok text-xs mt-2">{exportResult}</p>}

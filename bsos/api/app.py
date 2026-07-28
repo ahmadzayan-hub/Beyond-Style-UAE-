@@ -18,21 +18,46 @@ from pydantic import BaseModel
 from sqlmodel import select
 from sse_starlette.sse import EventSourceResponse
 
-from bsos.agents import ANALYST, CUSTODIAN, DESIGNER, PRODUCER, PUBLISHER
+from bsos.agents import ALL_AGENTS, ANALYST, CUSTODIAN, DESIGNER, PRODUCER, PUBLISHER
+from bsos.agents.runtime import AgentRuntime
+from bsos.api.auth import make_auth_middleware, resolve_token
 from bsos.api.bootstrap import build_kernel
+from bsos.kernel import metrics
 from bsos.kernel.contracts import EscalationPending, GrantViolation, PolicyDenied
 from bsos.memory.domain import (
-    Asset, Brief, Concept, Escalation, Licence, Milestone, Run,
+    AgentProfile, Asset, Brief, Concept, Escalation, Licence, Milestone, Run,
     SessionLogEntry, Spec, utcnow,
 )
+from bsos.orchestrator.pipeline import PipelineOrchestrator
 from bsos.orchestrator.state_machine import StateMachine, TransitionError
 
 kernel = build_kernel()
+pipeline = PipelineOrchestrator(kernel)
+API_TOKEN = resolve_token(kernel.paths.var, kernel.ledger)
 app = FastAPI(title="BSOS", version="0.1.0")
 app.add_middleware(
     CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_methods=["*"], allow_headers=["*"],
 )
+app.middleware("http")(make_auth_middleware(API_TOKEN))
+
+
+@app.middleware("http")
+async def request_log_middleware(request, call_next):
+    import logging
+    import time as _time
+
+    started = _time.monotonic()
+    response = await call_next(request)
+    if request.url.path.startswith("/api"):
+        metrics.HTTP_REQUESTS.labels(method=request.method,
+                                     status=str(response.status_code)).inc()
+        logging.getLogger("bsos.http").info(json.dumps({
+            "method": request.method, "path": request.url.path,
+            "status": response.status_code,
+            "duration_ms": int((_time.monotonic() - started) * 1000),
+        }))
+    return response
 
 
 def _act(agent, tool: str, payload: dict[str, Any] | None = None) -> Any:
@@ -322,27 +347,15 @@ def brief_provenance(brief_id: int) -> dict:
 
 @app.post("/api/briefs/{brief_id}/promote")
 def promote_brief(brief_id: int) -> dict:
-    with kernel.db_factory() as db:
-        brief = db.get(Brief, brief_id)
-        if brief is None:
-            raise HTTPException(404, "brief not found")
-        attributes = brief.attributes
     try:
-        return DESIGNER.act(kernel, "concept.brief_promote",
-                            {"brief_id": brief_id, "attributes": attributes})
+        return pipeline.promote_brief(brief_id)
+    except ValueError as exc:
+        raise HTTPException(404, str(exc)) from exc
     except PolicyDenied as exc:
-        p3 = next((d for d in exc.decisions
-                   if d.policy_id == "P3" and d.action == "deny"), None)
-        if p3 is None:
-            raise HTTPException(403, detail={
-                "kind": "policy_denied",
-                "decisions": [d.__dict__ for d in exc.decisions if d.action == "deny"],
-            }) from exc
-        # P3 contract: drop the offending attributes and return the brief for review.
-        dropped = _act(DESIGNER, "concept.brief_drop_insufficient", {
-            "brief_id": brief_id, "offending": p3.detail["insufficient_provenance"],
-        })
-        return {"promoted": False, "p3": p3.__dict__, **dropped}
+        raise HTTPException(403, detail={
+            "kind": "policy_denied",
+            "decisions": [d.__dict__ for d in exc.decisions if d.action == "deny"],
+        }) from exc
     except (EscalationPending, GrantViolation) as exc:
         raise HTTPException(409 if isinstance(exc, EscalationPending) else 403,
                             detail=str(exc)) from exc
@@ -352,16 +365,21 @@ class GenerateRequest(BaseModel):
     brief_id: int
     model: str = "local-dev"
     style_notes: str = ""
+    run_id: int | None = None
 
 
 @app.post("/api/concepts/generate")
 def generate_concept(body: GenerateRequest) -> dict:
-    prompt = _act(DESIGNER, "concept.prompt_assemble",
-                  {"brief_id": body.brief_id, "style_notes": body.style_notes})["prompt"]
-    result = _act(DESIGNER, "generate.image",
-                  {"prompt": prompt, "model": body.model, "brief_id": body.brief_id})
-    gate = _act(DESIGNER, "originality.gate", {"concept_id": result["concept_id"]})
-    return {**result, "gate": gate}
+    try:
+        return pipeline.generate_and_gate(body.brief_id, body.model,
+                                          body.style_notes, body.run_id)
+    except PolicyDenied as exc:
+        raise HTTPException(403, detail={
+            "kind": "policy_denied",
+            "decisions": [d.__dict__ for d in exc.decisions if d.action == "deny"],
+        }) from exc
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(422, str(exc)) from exc
 
 
 @app.get("/api/concepts")
@@ -484,6 +502,100 @@ def advance_run(run_id: int, body: RunAdvance) -> dict:
         kernel.ledger.append("run_transition", actor="orchestrator", outcome=body.to_state,
                              data={"run_id": run_id})
         return run.model_dump()
+
+
+@app.get("/api/runs/{run_id}/next")
+def run_next_actions(run_id: int, model: str = "local-dev") -> dict:
+    try:
+        return pipeline.next_actions(run_id, model=model)
+    except ValueError as exc:
+        raise HTTPException(404, str(exc)) from exc
+
+
+@app.get("/api/agents/profiles")
+def agent_profiles() -> dict:
+    with kernel.db_factory() as db:
+        profiles = {p.agent_name: p.model_dump() for p in db.exec(select(AgentProfile)).all()}
+    return {"agents": [
+        {"name": a.name, "role": a.role,
+         "grant": {"allow": a.grant.allow, "deny": a.grant.deny},
+         **profiles.get(a.name, {"display_name": "", "avatar_path": "", "tagline": ""})}
+        for a in ALL_AGENTS
+    ]}
+
+
+class ProfileUpdate(BaseModel):
+    display_name: str = ""
+    tagline: str = ""
+
+
+@app.post("/api/agents/{agent_name}/profile")
+def update_agent_profile(agent_name: str, body: ProfileUpdate) -> dict:
+    if agent_name not in {a.name for a in ALL_AGENTS}:
+        raise HTTPException(404, f"unknown agent '{agent_name}'")
+    with kernel.db_factory() as db:
+        profile = db.get(AgentProfile, agent_name) or AgentProfile(agent_name=agent_name)
+        profile.display_name = body.display_name
+        profile.tagline = body.tagline
+        profile.updated_at = utcnow()
+        db.add(profile)
+        db.commit()
+        db.refresh(profile)
+        return profile.model_dump()
+
+
+@app.post("/api/agents/{agent_name}/avatar")
+async def upload_agent_avatar(agent_name: str, file: UploadFile = File(...)) -> dict:
+    if agent_name not in {a.name for a in ALL_AGENTS}:
+        raise HTTPException(404, f"unknown agent '{agent_name}'")
+    avatars = kernel.paths.var / "avatars"
+    avatars.mkdir(exist_ok=True)
+    suffix = Path(file.filename or "avatar.png").suffix.lower() or ".png"
+    if suffix not in (".png", ".jpg", ".jpeg", ".webp"):
+        raise HTTPException(422, "avatar must be png/jpg/webp")
+    dest = avatars / f"{agent_name}{suffix}"
+    dest.write_bytes(await file.read())
+    with kernel.db_factory() as db:
+        profile = db.get(AgentProfile, agent_name) or AgentProfile(agent_name=agent_name)
+        profile.avatar_path = str(dest)
+        profile.updated_at = utcnow()
+        db.add(profile)
+        db.commit()
+    return {"agent": agent_name, "avatar": f"/api/agents/{agent_name}/avatar"}
+
+
+@app.get("/api/agents/{agent_name}/avatar")
+def agent_avatar(agent_name: str):
+    with kernel.db_factory() as db:
+        profile = db.get(AgentProfile, agent_name)
+    if profile is None or not profile.avatar_path or not Path(profile.avatar_path).exists():
+        raise HTTPException(404, "no avatar uploaded")
+    return FileResponse(profile.avatar_path)
+
+
+class AgentTask(BaseModel):
+    goal: str
+    max_steps: int = 8
+
+
+@app.post("/api/agents/{agent_name}/task")
+def agent_task(agent_name: str, body: AgentTask) -> dict:
+    agent = next((a for a in ALL_AGENTS if a.name == agent_name), None)
+    if agent is None:
+        raise HTTPException(404, f"unknown agent '{agent_name}'")
+    if kernel.adapters.llm is None:
+        raise HTTPException(503, "no LLM configured — set BSOS_LLM_PROVIDER (see SETUP.md)")
+    runtime = AgentRuntime(kernel, agent, kernel.adapters.llm,
+                           max_steps=min(body.max_steps, 16))
+    return runtime.run(body.goal)
+
+
+@app.get("/api/metrics")
+def metrics_endpoint():
+    from fastapi.responses import Response
+
+    payload, content_type = metrics.render()
+    return Response(content=payload, media_type=content_type)
 
 
 @app.get("/api/runs")

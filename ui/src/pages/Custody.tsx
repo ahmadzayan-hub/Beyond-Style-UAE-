@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, FileCheck2, Flag, Inbox, TimerReset } from "lucide-react";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { api, Asset, Licence } from "../api";
+import { api, Asset, authedUrl, Licence } from "../api";
 import { useT } from "../i18n";
 
 const ORIGIN_BADGE: Record<string, string> = {
@@ -65,7 +65,10 @@ export default function Custody() {
           <button
             className="btn-primary"
             disabled={!licenceId || !(inbox.data?.count ?? 0) || ingest.isPending}
-            onClick={() => ingest.mutate()}
+            onClick={() => {
+              const n = inbox.data?.count ?? 0;
+              if (window.confirm(t("confirm_ingest").replace("{n}", String(n)))) ingest.mutate();
+            }}
           >
             {t("ingest_inbox")}
           </button>
@@ -112,7 +115,7 @@ export default function Custody() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {(assets.data?.assets ?? []).map((a) => (
             <figure key={a.id} className="card overflow-hidden">
-              <img src={`/api/assets/${a.id}/file`} alt={a.filename} className="aspect-square object-cover w-full" loading="lazy" />
+              <img src={authedUrl(`/api/assets/${a.id}/file`)} alt={a.filename} className="aspect-square object-cover w-full" loading="lazy" />
               <figcaption className="p-2 text-xs space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="chip">{ORIGIN_BADGE[a.origin] ?? a.origin}</span>

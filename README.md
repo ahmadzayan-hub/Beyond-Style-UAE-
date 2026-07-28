@@ -37,8 +37,16 @@ plus capability scoping on the agent registry — see `ARCHITECTURE.md` and
 make setup   # Python venv + npm install
 cp .env.example .env
 make dev     # API :8000, UI :5173  (Windows: scripts\dev.ps1)
-make test    # 68 kernel/policy/pipeline tests
+make test    # kernel/policy/pipeline test suite
 ```
+
+On first boot an API token is generated into `var/api-token.txt` (or set
+`BSOS_API_TOKEN`); the UI prompts for it once. The **Command** workspace is
+the animated executive view — core pulse, live metrics, the five specialists
+with owner-uploaded photos, and the live intelligence stream — all backed by
+real kernel telemetry. `make backup` archives `var/` and externalizes the
+ledger head hash; `make migrate` applies Alembic migrations;
+`/api/metrics` serves Prometheus counters.
 
 ## Layout
 

@@ -122,6 +122,20 @@ class Escalation(SQLModel, table=True):
     resolved_at: Optional[datetime] = None
 
 
+class AgentProfile(SQLModel, table=True):
+    """Owner-set persona for an agent: display name and uploaded avatar.
+
+    Cosmetic only — the kernel identifies agents by their registry name, and
+    grants never key off profiles.
+    """
+
+    agent_name: str = Field(primary_key=True)
+    display_name: str = ""
+    avatar_path: str = ""
+    tagline: str = ""
+    updated_at: datetime = Field(default_factory=utcnow)
+
+
 class Milestone(SQLModel, table=True):
     """Project progress memory: what BSOS is being used to achieve, and where it stands."""
 

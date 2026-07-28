@@ -18,10 +18,30 @@ export class ApiError extends Error {
   }
 }
 
+export function getToken(): string {
+  return localStorage.getItem("bsos-token") ?? "";
+}
+
+export function setToken(token: string): void {
+  localStorage.setItem("bsos-token", token);
+}
+
+/** For <img> tags and EventSource, which cannot carry headers. */
+export function authedUrl(path: string): string {
+  const token = getToken();
+  if (!token) return path;
+  return path + (path.includes("?") ? "&" : "?") + "token=" + encodeURIComponent(token);
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getToken();
   const res = await fetch(path, {
-    headers: { "Content-Type": "application/json" },
     ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init?.headers ?? {}),
+    },
   });
   if (!res.ok) {
     let detail: any = undefined;
@@ -101,6 +121,8 @@ export interface Concept {
   status: string;
   gate_result: {
     passed?: boolean;
+    advisory?: boolean;
+    advisory_note?: string;
     max_similarity?: number;
     threshold?: number;
     nearest?: { key: string; similarity: number }[];
@@ -124,6 +146,15 @@ export interface Escalation {
   message: string;
   status: string;
   created_at: string;
+}
+
+export interface AgentInfo {
+  name: string;
+  role: string;
+  display_name: string;
+  tagline: string;
+  avatar_path: string;
+  grant: { allow: string[]; deny: string[] };
 }
 
 export interface FeedEvent {

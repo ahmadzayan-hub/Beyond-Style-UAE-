@@ -4,7 +4,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: setup dev api ui test audit verify-ledger clean
+.PHONY: setup dev api ui test audit verify-ledger backup migrate lock clean
 
 setup:
 	python3 -m venv .venv
@@ -28,6 +28,15 @@ audit:
 
 verify-ledger:
 	$(PY) -m bsos.cli verify-ledger
+
+backup:
+	$(PY) -m bsos.cli backup
+
+migrate:
+	$(PY) -m alembic upgrade head
+
+lock:
+	.venv/bin/pip freeze --exclude-editable > requirements.lock
 
 clean:
 	rm -rf .venv ui/node_modules ui/dist var

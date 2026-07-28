@@ -238,6 +238,9 @@ def graph_business_discovery(ctx: ToolContext, target_username: str, licence_id:
                              acknowledge_expiry: bool = False) -> dict[str, Any]:
     graph = ctx.adapters.require("graph")
     items = list(graph.iter_media(target_username, max_items=max_items))
+    from bsos.kernel.metrics import GRAPH_BUDGET
+
+    GRAPH_BUDGET.set(graph.bucket.remaining)
     return {
         "target": target_username, "media_count": len(items), "media": items,
         "rate_budget_remaining": graph.bucket.remaining,
