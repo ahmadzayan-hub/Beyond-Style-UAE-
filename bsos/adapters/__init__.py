@@ -21,6 +21,8 @@ class AdapterRegistry:
     embedder: Any = None
     vector_store: Any = None  # memory.vector.VectorStore, kernel-injected
     provenance: Any = None  # memory.provenance.ProvenanceStore, kernel-injected
+    brain: Any = None  # memory.brain.SecondBrain, kernel-injected
+    video_sampler: Any = None  # vision.sample_video_frames or equivalent
 
     def require(self, name: str) -> Any:
         adapter = getattr(self, name, None)

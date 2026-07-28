@@ -44,11 +44,15 @@ single place adapters meet the kernel.
 
 | Agent | Owns | Tool grant | Explicitly denied |
 |---|---|---|---|
-| Custodian | asset custody | `graph.*`, `library.*`, `licence.*`, `vision.extract` | `generate.*`, `export.catalogue` |
-| Analyst | trend synthesis | `corpus.*`, `vector.*`, `memory.domain.read` | `library.ingest`, `generate.*` |
-| Designer | concept origination | `generate.image` (text only), `concept.*`, `originality.gate` | every image-bearing tool incl. `vision.extract`, `library.read_binary`, `library.*`, `graph.*` |
-| Producer | workshop spec | `spec.*`, `pricing.*`, `memory.domain.*` | `generate.*`, `export.*` |
+| Custodian | asset custody | `graph.*`, `library.*`, `licence.*`, `vision.extract`, `vision.extract_video` | `generate.*`, `export.catalogue` |
+| Analyst | trend synthesis | `corpus.*`, `vector.*`, `memory.domain.read`, `brain.search` | `library.ingest`, `generate.*` |
+| Designer | concept origination | `generate.image` (text only), `concept.*`, `originality.gate`, `brain.search` | every image-bearing tool incl. `vision.extract`, `library.read_binary`, `library.*`, `graph.*` |
+| Producer | workshop spec | `spec.*`, `pricing.*`, `memory.domain.*`, `brain.search` | `generate.*`, `export.*` |
 | Publisher | export guard | `export.*`, `manifest.*`, `ledger.append` | `generate.*`, `library.ingest` |
+
+`brain.search` is read-only access to the owner's Second Brain notes; no
+agent holds a brain-write grant. Video extraction is Custodian-only and
+licence-gated like every third-party ingest.
 
 Grants are immutable after registration and bare `*` is rejected. The
 Designer's denial of `vision.extract` is load-bearing: abstraction happens

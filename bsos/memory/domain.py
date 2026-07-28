@@ -122,6 +122,27 @@ class Escalation(SQLModel, table=True):
     resolved_at: Optional[datetime] = None
 
 
+class Milestone(SQLModel, table=True):
+    """Project progress memory: what BSOS is being used to achieve, and where it stands."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    title: str
+    status: str = "planned"  # planned|in_progress|done|dropped
+    notes: str = ""
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+
+
+class SessionLogEntry(SQLModel, table=True):
+    """Sessions log: one row per working session, human-readable summary plus data."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    session_id: str = Field(index=True)
+    summary: str
+    data: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=utcnow)
+
+
 class Run(SQLModel, table=True):
     """One pass of the orchestrator state machine for a concept-to-product flow."""
 

@@ -257,6 +257,63 @@ def graph_own_media(ctx: ToolContext, url: str = "https://graph.facebook.com/v25
 
 
 @registry.register(
+    "vision.extract_video", required_grant="vision.extract_video",
+    tags=("licence_required",), side_effects="fs",
+    description="Sample frames from a licensed video, abstract each into attribute JSON, "
+                "and aggregate by majority. Frames and video go no further than this call.",
+)
+def vision_extract_video(ctx: ToolContext, file_path: str, licence_id: str,
+                         max_frames: int = 6, use: str = "ingest",
+                         acknowledge_expiry: bool = False) -> dict[str, Any]:
+    src = Path(file_path)
+    if not src.is_absolute():
+        src = ctx.paths.library_inbox / file_path
+    if not src.exists():
+        raise FileNotFoundError(f"video not found: {src}")
+
+    extractor = ctx.adapters.require("vision")
+    frames_dir = ctx.paths.var / "video_frames" / src.stem
+    # sample_video_frames lives behind the vision adapter boundary via ctx
+    frames = ctx.adapters.require("video_sampler")(src, frames_dir, max_frames)
+
+    from collections import Counter
+
+    per_frame, marks = [], []
+    for frame in frames:
+        per_frame.append(extractor.extract_attributes(frame))
+        mark = _detect_marks(frame)
+        if mark["flagged"]:
+            marks.append({"frame": frame.name, **mark})
+
+    # Majority vote per attribute across frames.
+    aggregated: dict[str, dict] = {}
+    for section in per_frame[0]:
+        aggregated[section] = {}
+        for key in per_frame[0][section]:
+            values = [f[section][key] for f in per_frame
+                      if not isinstance(f[section][key], list)]
+            if values:
+                aggregated[section][key] = Counter(map(str, values)).most_common(1)[0][0]
+            else:
+                aggregated[section][key] = per_frame[0][section][key]
+
+    return {
+        "video": src.name, "frames_analysed": len(frames),
+        "attributes": aggregated, "per_frame": per_frame,
+        "marks": marks, "source_url": str(src),
+    }
+
+
+@registry.register(
+    "brain.search", required_grant="brain.search", tags=(),
+    description="Read-only search over the owner's Second Brain notes.",
+)
+def brain_search(ctx: ToolContext, query: str, limit: int = 10) -> dict[str, Any]:
+    brain = ctx.adapters.require("brain")
+    return {"query": query, "results": brain.search(query, limit)}
+
+
+@registry.register(
     "vision.extract", required_grant="vision.extract", tags=(),
     side_effects="db",
     description="Abstract an asset into attribute JSON; embed and hash it for the gate. "

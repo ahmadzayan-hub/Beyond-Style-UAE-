@@ -59,6 +59,9 @@ class FakeVisionExtractor:
 
 
 def make_test_kernel(tmp_path: Path) -> Kernel:
+    from bsos.adapters.vision import sample_video_frames
+    from bsos.memory.brain import SecondBrain
+
     paths = Paths.from_root(tmp_path)
     ledger = Ledger(paths.var / "ledger.jsonl")
     engine = make_engine(str(paths.var / "bsos.db"))
@@ -68,6 +71,8 @@ def make_test_kernel(tmp_path: Path) -> Kernel:
         embedder=DevPixelEmbedder(),
         imagegen=LocalDevProvider(),
         vision=FakeVisionExtractor(),
+        brain=SecondBrain(paths.var / "brain.db"),
+        video_sampler=sample_video_frames,
     )
     kernel = Kernel(
         registry, PolicyEngine(POLICY_CONFIG, ledger=ledger), ledger, EventBus(),

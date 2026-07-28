@@ -40,19 +40,38 @@ def build_kernel(root: Path | None = None) -> Kernel:
     engine = make_engine(str(paths.var / "bsos.db"))
     db_factory = session_factory(engine)
 
+    from bsos.memory.brain import SecondBrain
+
     adapters = AdapterRegistry(
         vector_store=VectorStore(paths.var / "vectors.db"),
         provenance=ProvenanceStore(paths.var / "provenance"),
+        brain=SecondBrain(paths.var / "brain.db"),
     )
 
-    # LLM + vision extraction (attribute JSON only leaves the adapter).
+    from bsos.adapters.vision import sample_video_frames
+
+    adapters.video_sampler = sample_video_frames
+
+    # LLM: provider selection — `anthropic` (API key) or `ollama` (local).
+    # Subscription chat plans have no programmatic API and cannot back this.
+    provider = os.environ.get("BSOS_LLM_PROVIDER", "auto")
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
-    if anthropic_key:
+    if provider == "ollama" or (provider == "auto" and not anthropic_key
+                                and os.environ.get("OLLAMA_MODEL")):
+        from bsos.adapters.llm import OllamaLLM
+
+        adapters.llm = OllamaLLM(
+            base_url=os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"),
+            model=os.environ.get("OLLAMA_MODEL", "llama3.2"),
+        )
+    elif anthropic_key:
         from bsos.adapters.llm import AnthropicLLM
-        from bsos.adapters.vision import LLMVisionExtractor
 
         adapters.llm = AnthropicLLM(anthropic_key,
                                     model=os.environ.get("BSOS_LLM_MODEL", "claude-sonnet-5"))
+    if adapters.llm is not None:
+        from bsos.adapters.vision import LLMVisionExtractor
+
         adapters.vision = LLMVisionExtractor(adapters.llm)
 
     # Embedder for the originality gate: CLIP in production, dev fallback otherwise.

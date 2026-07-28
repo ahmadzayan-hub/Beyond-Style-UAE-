@@ -13,7 +13,7 @@ DESIGNER = Agent(
     name="designer",
     role="Original concept origination from abstracted attributes; text-only generation.",
     grant=GrantSet.of(
-        allow=["generate.image", "concept.*", "originality.gate"],
+        allow=["generate.image", "concept.*", "originality.gate", "brain.search"],
         deny=[
             "vision.extract", "library.read_binary", "library.*",
             "graph.*", "export.*", "asset.*",

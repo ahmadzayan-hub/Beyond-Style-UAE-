@@ -84,10 +84,50 @@ in a catalogue would be a trust incident.
 Without a key, a **local dev placeholder renderer** is used (draws the
 prompt text on a card). It is loudly labelled and is not a product visual.
 
-## LLM / vision extraction
+## LLM providers (local / API / subscription)
 
-Set `ANTHROPIC_API_KEY` for attribute extraction (vision → structured JSON;
-the image never travels past the adapter) and bilingual copy scaffolds.
+`BSOS_LLM_PROVIDER` selects the backend for attribute extraction (vision →
+structured JSON; the image never travels past the adapter), bilingual copy
+scaffolds, and the jewellery engineering review:
+
+- **`anthropic`** (API): set `ANTHROPIC_API_KEY` and optionally
+  `BSOS_LLM_MODEL` (default `claude-sonnet-5`). Pay-per-token API billing.
+- **`ollama`** (local): install Ollama, `ollama pull llama3.2` (or a
+  multimodal model such as `llava` / `llama3.2-vision` if you want local
+  attribute extraction), set `OLLAMA_MODEL`, keep `ollama serve` running.
+  No key, no cloud; quality depends on the local model.
+- **Subscription** plans (claude.ai Pro/Max) are chat products without a
+  programmatic API — they cannot back an adapter. If you have a subscription
+  but no API key, use `ollama` for automated calls and the chat product for
+  interactive work.
+- `auto` (default): Anthropic if a key is present, else Ollama if
+  `OLLAMA_MODEL` is set, else the LLM-dependent skills fail with a clear
+  configuration error.
+
+## Video recognition
+
+`vision.extract_video` samples up to 6 evenly spaced frames from a licensed
+video, abstracts each frame with the vision extractor, aggregates attributes
+by majority vote, and runs brand-mark detection per frame. It requires the
+video extra:
+
+```bash
+pip install -e '.[video]'   # imageio + pyav
+```
+
+Without it, the skill fails loudly with that exact instruction — no silent
+no-op. Videos are licence-gated (P2) like every other third-party asset, and
+frames go no further than the extraction call.
+
+## Second Brain, project progress, sessions log
+
+- **Second Brain** (`var/brain.db`, SQLite FTS5): the owner's durable notes —
+  decisions, supplier intel, design lessons. API: `GET/POST /api/brain/notes`,
+  `GET /api/brain/notes?q=...`. Agents with the read-only `brain.search`
+  grant (Analyst, Designer, Producer) can search it; none can write it.
+- **Project progress** (`/api/progress`): milestones with status and notes.
+- **Sessions log** (`/api/sessions-log`): one summary row per working
+  session. Both live in the domain database and are ledgered on creation.
 
 ## Originality gate embedder
 

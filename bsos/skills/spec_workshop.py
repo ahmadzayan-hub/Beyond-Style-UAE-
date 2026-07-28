@@ -152,6 +152,44 @@ def open_questions(ctx: ToolContext, spec_id: int, questions: list[str]) -> dict
     return {"spec_id": spec_id, "open_questions": questions}
 
 
+@registry.register("spec.engineering_review", required_grant="spec.engineering_review",
+                   tags=(), side_effects="db",
+                   description="Jewellery design-engineering review of a spec against the "
+                               "workshop knowledge base; findings appended as open questions.")
+def engineering_review(ctx: ToolContext, spec_id: int) -> dict[str, Any]:
+    import json
+    from pathlib import Path
+
+    spec = ctx.db.get(Spec, spec_id)
+    if spec is None:
+        raise ValueError(f"spec '{spec_id}' not found")
+    llm = ctx.adapters.require("llm")
+    knowledge = (Path(__file__).resolve().parent.parent / "knowledge"
+                 / "jewellery_engineering.md").read_text(encoding="utf-8")
+    payload = {
+        "components": spec.components,
+        "personalisation_zones": spec.personalisation_zones,
+        "complexity_band": spec.complexity_band,
+        "materials": spec.materials,
+        "open_questions": spec.open_questions,
+    }
+    raw = llm.complete(
+        knowledge + "\n\nWorkshop spec to review:\n" + json.dumps(payload, ensure_ascii=False)
+        + "\n\nReturn the JSON output contract only."
+    )
+    try:
+        review = json.loads(raw[raw.index("{"): raw.rindex("}") + 1])
+    except (ValueError, json.JSONDecodeError) as exc:
+        raise ValueError(f"engineering review returned non-JSON output: {exc}") from exc
+
+    new_questions = [q for q in review.get("open_questions_for_workshop", [])
+                     if q not in spec.open_questions]
+    if new_questions:
+        spec.open_questions = [*spec.open_questions, *new_questions]
+        ctx.db.add(spec)
+    return {"spec_id": spec_id, "review": review, "questions_added": new_questions}
+
+
 @registry.register("memory.domain.write", required_grant="memory.domain.write",
                    tags=(), side_effects="db",
                    description="Producer-scope domain writes (spec state notes).")

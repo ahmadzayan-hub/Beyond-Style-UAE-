@@ -7,7 +7,7 @@ ANALYST = Agent(
     name="analyst",
     role="Corpus health, frequency, co-occurrence, whitespace, segments.",
     grant=GrantSet.of(
-        allow=["corpus.*", "vector.*", "memory.domain.read"],
+        allow=["corpus.*", "vector.*", "memory.domain.read", "brain.search"],
         deny=["library.ingest", "generate.*"],
     ),
     prompt_file="analyst.md",

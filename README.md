@@ -15,6 +15,22 @@ Every compliance rule (P1–P8) is kernel middleware on the tool-call path
 plus capability scoping on the agent registry — see `ARCHITECTURE.md` and
 `COMPLIANCE.md`.
 
+## Agentic OS component map
+
+| Component | Where it lives |
+|---|---|
+| Orchestrator | `bsos/orchestrator/` — planner, dispatcher, state machine |
+| Agents | `bsos/agents/` — custodian, analyst, designer, producer, publisher |
+| Skills | `bsos/skills/` — 44 registered units behind the kernel guard |
+| MCP (agentic tools) | `bsos/adapters/mcp.py` — per-tool grants, same guard |
+| Memory — project progress & sessions log | `Milestone` / `SessionLogEntry` tables, `/api/progress`, `/api/sessions-log` |
+| Brain (Second Brain) | `bsos/memory/brain.py` — SQLite FTS5 notes, `/api/brain/notes`, read-only `brain.search` grant |
+| LLMs — local / API | `bsos/adapters/llm.py` — Ollama (local) or Anthropic (API); subscription chat plans have no API (see SETUP.md) |
+| Photo recognition | `vision.extract` — vision LLM → attribute JSON only |
+| Video recognition | `vision.extract_video` — frame sampling + per-frame extraction (`bsos[video]`) |
+| Jewellery image generation | `generate.image` — Nano Banana family, text-only in, `CONCEPT_ONLY` out |
+| Jewellery design engineering expert | `spec.engineering_review` + `bsos/knowledge/jewellery_engineering.md` |
+
 ## Run it
 
 ```bash

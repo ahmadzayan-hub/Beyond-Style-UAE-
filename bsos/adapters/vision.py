@@ -142,6 +142,39 @@ class DevPixelEmbedder:
         return "dev-pixel-projection (NOT for production originality decisions)"
 
 
+VIDEO_EXTENSIONS = (".mp4", ".mov", ".m4v", ".webm", ".avi", ".mkv")
+
+
+def sample_video_frames(video_path: Path, out_dir: Path, max_frames: int = 6) -> list[Path]:
+    """Sample up to `max_frames` evenly spaced frames from a video to PNG files.
+
+    Requires the `video` extra (`pip install bsos[video]` → imageio + pyav).
+    Fails with a clear message when it is not installed — no silent no-op.
+    """
+    try:
+        import imageio.v3 as iio
+    except ImportError as exc:
+        raise VisionError(
+            "video recognition requires the video extra: pip install 'bsos[video]' "
+            "(imageio + pyav)"
+        ) from exc
+    from PIL import Image
+
+    video_path = Path(video_path)
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    frames = list(iio.imiter(video_path, plugin="pyav"))
+    if not frames:
+        raise VisionError(f"no frames decodable from {video_path.name}")
+    step = max(1, len(frames) // max_frames)
+    written: list[Path] = []
+    for i, frame in enumerate(frames[::step][:max_frames]):
+        path = out_dir / f"{video_path.stem}_frame{i:02d}.png"
+        Image.fromarray(frame).save(path, "PNG")
+        written.append(path)
+    return written
+
+
 def perceptual_hash(image_path: Path) -> str:
     import imagehash
     from PIL import Image

@@ -22,7 +22,8 @@ from bsos.agents import ANALYST, CUSTODIAN, DESIGNER, PRODUCER, PUBLISHER
 from bsos.api.bootstrap import build_kernel
 from bsos.kernel.contracts import EscalationPending, GrantViolation, PolicyDenied
 from bsos.memory.domain import (
-    Asset, Brief, Concept, Escalation, Licence, Run, Spec, utcnow,
+    Asset, Brief, Concept, Escalation, Licence, Milestone, Run,
+    SessionLogEntry, Spec, utcnow,
 )
 from bsos.orchestrator.state_machine import StateMachine, TransitionError
 
@@ -517,6 +518,112 @@ def run_export(body: ExportRequest) -> dict:
             "asset_ids": selection["asset_ids"], "destination": stamp,
         })
     return {"exported": True, "destination": stamp, **results}
+
+
+# --------------------------------------------- progress / sessions / brain ----
+
+class MilestoneCreate(BaseModel):
+    title: str
+    status: str = "planned"
+    notes: str = ""
+
+
+@app.get("/api/progress")
+def list_progress() -> dict:
+    with kernel.db_factory() as db:
+        rows = db.exec(select(Milestone).order_by(Milestone.updated_at.desc())).all()
+        return {"milestones": [m.model_dump() for m in rows]}
+
+
+@app.post("/api/progress")
+def create_milestone(body: MilestoneCreate) -> dict:
+    with kernel.db_factory() as db:
+        m = Milestone(**body.model_dump())
+        db.add(m)
+        db.commit()
+        db.refresh(m)
+        kernel.ledger.append("milestone", actor="owner", outcome=m.status,
+                             data={"id": m.id, "title": m.title})
+        return m.model_dump()
+
+
+class MilestoneUpdate(BaseModel):
+    status: str | None = None
+    notes: str | None = None
+
+
+@app.post("/api/progress/{milestone_id}")
+def update_milestone(milestone_id: int, body: MilestoneUpdate) -> dict:
+    with kernel.db_factory() as db:
+        m = db.get(Milestone, milestone_id)
+        if m is None:
+            raise HTTPException(404, "milestone not found")
+        if body.status is not None:
+            m.status = body.status
+        if body.notes is not None:
+            m.notes = body.notes
+        m.updated_at = utcnow()
+        db.add(m)
+        db.commit()
+        db.refresh(m)
+        return m.model_dump()
+
+
+class SessionLogCreate(BaseModel):
+    session_id: str
+    summary: str
+    data: dict = {}
+
+
+@app.get("/api/sessions-log")
+def sessions_log(limit: int = 50) -> dict:
+    with kernel.db_factory() as db:
+        rows = db.exec(select(SessionLogEntry)
+                       .order_by(SessionLogEntry.created_at.desc()).limit(limit)).all()
+        return {"sessions": [s.model_dump() for s in rows]}
+
+
+@app.post("/api/sessions-log")
+def add_session_log(body: SessionLogCreate) -> dict:
+    with kernel.db_factory() as db:
+        entry = SessionLogEntry(**body.model_dump())
+        db.add(entry)
+        db.commit()
+        db.refresh(entry)
+        return entry.model_dump()
+
+
+class NoteCreate(BaseModel):
+    title: str
+    body: str
+    tags: list[str] = []
+
+
+@app.get("/api/brain/notes")
+def brain_notes(q: str | None = None) -> dict:
+    brain = kernel.adapters.brain
+    if q:
+        return {"results": brain.search(q)}
+    return {"notes": brain.all()}
+
+
+@app.post("/api/brain/notes")
+def brain_add(body: NoteCreate) -> dict:
+    note_id = kernel.adapters.brain.add(body.title, body.body, body.tags)
+    return {"id": note_id}
+
+
+@app.get("/api/brain/notes/{note_id}")
+def brain_get(note_id: int) -> dict:
+    note = kernel.adapters.brain.get(note_id)
+    if note is None:
+        raise HTTPException(404, "note not found")
+    return note
+
+
+@app.post("/api/specs/{spec_id}/engineering-review")
+def engineering_review(spec_id: int) -> dict:
+    return _act(PRODUCER, "spec.engineering_review", {"spec_id": spec_id})
 
 
 @app.get("/api/audit/concept/{concept_id}")
