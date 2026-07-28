@@ -1,8 +1,9 @@
 name: CI
 
+# push-only: PRs from branches in this repo get their checks from the push
+# event; running pull_request too duplicated every run on the same commit.
 on:
   push:
-  pull_request:
 
 jobs:
   backend:
@@ -51,6 +52,10 @@ jobs:
           python-version: "3.11"
       - name: pip-audit
         run: |
+          # upgrade the runner's own build tooling first — pip-audit audits the
+          # whole environment, and a stale setuptools is a finding about the
+          # runner, not about BSOS's dependency tree
+          pip install --upgrade pip setuptools
           pip install pip-audit
           pip install -e .
           pip-audit
