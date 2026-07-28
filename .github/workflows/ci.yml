@@ -62,6 +62,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: npm audit
+      - name: npm audit (accepted-risk filter)
         working-directory: ui
-        run: npm audit --audit-level=high
+        # fails on any high/critical advisory not documented in the filter
+        run: node scripts/audit-filter.mjs
