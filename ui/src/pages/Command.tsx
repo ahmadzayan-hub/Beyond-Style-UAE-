@@ -187,9 +187,10 @@ export default function Command() {
           <div className="relative w-32 h-32">
             <span className="core-ring" />
             <span className="core-ring delay" />
-            <div className="core-pulse w-32 h-32 rounded-full bg-gradient-to-br from-[#1c2c44] to-[#0d1522] ring-1 ring-white/20 flex flex-col items-center justify-center">
-              <span className="font-display text-lg tracking-[0.2em]">QAIS</span>
-              <span className="text-[10px] text-stone-400 tracking-widest">UNIT 01</span>
+            <div className="core-pulse w-32 h-32 rounded-full bg-gradient-to-br from-[#2b2214] to-[#0d0b07] ring-1 ring-gold/40 flex flex-col items-center justify-center">
+              <img src="/brand/logo.png" alt="" className="w-10 h-10 rounded-full mb-1 opacity-90" />
+              <span className="font-display text-sm tracking-[0.25em] text-gold-soft">QAIS</span>
+              <span className="text-[9px] text-stone-400 tracking-widest">UNIT 01</span>
             </div>
           </div>
           <p className="text-[11px] uppercase tracking-[0.3em] text-stone-400 mt-4">

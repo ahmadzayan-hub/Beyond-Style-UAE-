@@ -168,9 +168,12 @@ export default function App() {
     )}
     <div className="min-h-screen flex">
       <aside className="w-56 shrink-0 border-e border-stone-200 bg-white p-4 flex flex-col gap-6">
-        <div>
-          <h1 className="font-display text-xl tracking-wide">Beyond Style</h1>
-          <p className="text-xs text-stone-400 mt-0.5">BSOS · agentic OS</p>
+        <div className="flex items-center gap-3">
+          <img src="/brand/logo.png" alt="Beyond Style" className="w-12 h-12 rounded-full shadow-sm" />
+          <div>
+            <h1 className="font-display text-base leading-tight tracking-wide">Beyond Style</h1>
+            <p className="text-[10px] text-gold-deep tracking-[0.2em] uppercase mt-0.5">BSOS · Agentic OS</p>
+          </div>
         </div>
         <nav className="flex flex-col gap-1">
           {NAV.map(({ to, key, icon: Icon }) => (
