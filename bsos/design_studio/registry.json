@@ -1,0 +1,126 @@
+{
+  "registry_version": 1,
+  "policy": "approved-font registry; no runtime font downloads; commercial binaries never enter the repo without confirmed licensing",
+  "fonts": [
+    {
+      "id": "Amiri-Regular",
+      "family": "Amiri",
+      "styleCategory": "naskh",
+      "scripts": [
+        "Arab",
+        "Latn"
+      ],
+      "source": "https://github.com/aliftype/amiri",
+      "licenseType": "SIL OFL 1.1",
+      "licenseFile": "OFL-Amiri.txt",
+      "embeddingAllowed": true,
+      "commercialUseAllowed": true,
+      "modificationAllowed": true,
+      "redistributionAllowed": true,
+      "reservedFontName": "Amiri",
+      "webAllowed": true,
+      "appEmbeddingAllowed": true,
+      "manufacturingOutlineUseAllowed": true,
+      "version": "1.003",
+      "checksum": "2444788b85996d795f0db7e14f3f6bfc3ea1c985e391267db0269b9e40f3447d",
+      "glyphCoverage": [
+        "arabic-full",
+        "latin-basic"
+      ],
+      "supportedFeatures": [
+        "init",
+        "medi",
+        "fina",
+        "liga",
+        "calt",
+        "mark",
+        "kern"
+      ],
+      "recommendedUses": [
+        "balanced_diwani",
+        "luxury_diwani_jali",
+        "engraving"
+      ],
+      "minimumSafeSize": 6.0,
+      "status": "approved",
+      "authenticityNote": "Naskh family used as base for Diwani-INSPIRED composition; not labelled authentic Diwani Jali."
+    },
+    {
+      "id": "Amiri-Bold",
+      "family": "Amiri",
+      "styleCategory": "naskh",
+      "scripts": [
+        "Arab",
+        "Latn"
+      ],
+      "source": "https://github.com/aliftype/amiri",
+      "licenseType": "SIL OFL 1.1",
+      "licenseFile": "OFL-Amiri.txt",
+      "embeddingAllowed": true,
+      "commercialUseAllowed": true,
+      "modificationAllowed": true,
+      "redistributionAllowed": true,
+      "reservedFontName": "Amiri",
+      "webAllowed": true,
+      "appEmbeddingAllowed": true,
+      "manufacturingOutlineUseAllowed": true,
+      "version": "1.003",
+      "checksum": "3cd4a96bf6dca38649c9c7b4ca11a3aed55e272ae377a667f6f2138994c4baec",
+      "glyphCoverage": [
+        "arabic-full",
+        "latin-basic"
+      ],
+      "supportedFeatures": [
+        "init",
+        "medi",
+        "fina",
+        "liga",
+        "calt",
+        "mark",
+        "kern"
+      ],
+      "recommendedUses": [
+        "manufacturing_optimized",
+        "small-jewellery"
+      ],
+      "minimumSafeSize": 5.0,
+      "status": "approved"
+    },
+    {
+      "id": "NotoKufiArabic",
+      "family": "Noto Kufi Arabic",
+      "styleCategory": "kufi",
+      "scripts": [
+        "Arab"
+      ],
+      "source": "https://github.com/notofonts/arabic",
+      "licenseType": "SIL OFL 1.1",
+      "licenseFile": "",
+      "embeddingAllowed": true,
+      "commercialUseAllowed": true,
+      "modificationAllowed": true,
+      "redistributionAllowed": true,
+      "reservedFontName": "Noto Kufi Arabic",
+      "webAllowed": true,
+      "appEmbeddingAllowed": true,
+      "manufacturingOutlineUseAllowed": true,
+      "version": "",
+      "checksum": "",
+      "glyphCoverage": [
+        "arabic-full"
+      ],
+      "supportedFeatures": [
+        "init",
+        "medi",
+        "fina"
+      ],
+      "recommendedUses": [
+        "kufi",
+        "geometric"
+      ],
+      "minimumSafeSize": 5.0,
+      "status": "review-required",
+      "authenticityNote": "binary not yet vendored (download pending); registered for the library UI, unusable until approved"
+    }
+  ]
+}

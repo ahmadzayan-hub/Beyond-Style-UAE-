@@ -172,6 +172,44 @@ export interface AgentInfo {
   grant: { allow: string[]; deny: string[] };
 }
 
+export interface DesignVariant {
+  variant_id: string;
+  font: string;
+  spelling_verified: boolean;
+  legibility: number;
+  feasibility_hint: number;
+  text_mm: [number, number];
+  validation_passed: boolean;
+  meta: {
+    label_en: string;
+    label_ar: string;
+    expert_review_recommended: boolean;
+    estimated_stroke_mm?: number;
+    notes: string;
+    authenticity: string;
+  };
+}
+
+export interface DesignProjectSummary {
+  id: number;
+  inscription: string;
+  item_type: string;
+  status: string;
+  selected_variant: string;
+  created_at: string;
+}
+
+export interface DesignProjectDetail extends DesignProjectSummary {
+  normalized_inscription: string;
+  frame: Record<string, number>;
+  letter_sequence: { char: string; codepoint: string; name: string }[];
+  verification: { passed: boolean; status: string; issues: string[] };
+  variants: DesignVariant[];
+  validations: Record<string, { passed: boolean; checks: { check: string; ok: boolean; detail: string }[] }>;
+  approver: string;
+  export_manifest: { approval_id?: string; files?: Record<string, string> };
+}
+
 export interface FeedEvent {
   seq: number;
   ts: string;

@@ -4,6 +4,7 @@ from bsos.skills import (  # noqa: F401
     asset_custody,
     concept_studio,
     corpus_synth,
+    design_studio,
     export_publish,
     spec_workshop,
 )

@@ -18,15 +18,17 @@ from pydantic import BaseModel
 from sqlmodel import select
 from sse_starlette.sse import EventSourceResponse
 
-from bsos.agents import ALL_AGENTS, ANALYST, CUSTODIAN, DESIGNER, PRODUCER, PUBLISHER
+from bsos.agents import (
+    ALL_AGENTS, ANALYST, CALLIGRAPHER, CUSTODIAN, DESIGNER, PRODUCER, PUBLISHER,
+)
 from bsos.agents.runtime import AgentRuntime
 from bsos.api.auth import make_auth_middleware, resolve_token
 from bsos.api.bootstrap import build_kernel
 from bsos.kernel import metrics
 from bsos.kernel.contracts import EscalationPending, GrantViolation, PolicyDenied
 from bsos.memory.domain import (
-    AgentProfile, Asset, Brief, Concept, Escalation, Licence, Milestone, Run,
-    SessionLogEntry, Spec, utcnow,
+    AgentProfile, Asset, Brief, Concept, DesignProject, Escalation, Licence,
+    Milestone, Run, SessionLogEntry, Spec, utcnow,
 )
 from bsos.orchestrator.pipeline import PipelineOrchestrator
 from bsos.orchestrator.state_machine import StateMachine, TransitionError
@@ -414,6 +416,108 @@ def promote_concept(concept_id: int, body: ConceptPromote) -> dict:
         "concept_id": concept_id, "approver": body.approver,
         "max_similarity": max_sim, "margin_reviewed": body.margin_reviewed,
     })
+
+
+# --------------------------------------------------------- design studio ----
+
+class DesignProjectCreate(BaseModel):
+    inscription: str
+    item_type: str = "cufflink"
+    frame: dict | None = None
+    font_id: str = "Amiri-Regular"
+
+
+@app.get("/api/design/fonts")
+def design_fonts() -> dict:
+    return _act(CALLIGRAPHER, "design.fonts")
+
+
+@app.get("/api/design/projects")
+def design_projects() -> dict:
+    return _act(CALLIGRAPHER, "design.project_list")
+
+
+@app.post("/api/design/projects")
+def design_project_create(body: DesignProjectCreate) -> dict:
+    return _act(CALLIGRAPHER, "design.project_create", body.model_dump(exclude_none=True))
+
+
+@app.get("/api/design/projects/{project_id}")
+def design_project_get(project_id: int) -> dict:
+    with kernel.db_factory() as db:
+        project = db.get(DesignProject, project_id)
+        if project is None:
+            raise HTTPException(404, "design project not found")
+        return project.model_dump()
+
+
+@app.post("/api/design/projects/{project_id}/compose")
+def design_compose(project_id: int) -> dict:
+    return _act(CALLIGRAPHER, "design.compose", {"project_id": project_id})
+
+
+class DesignValidate(BaseModel):
+    variant_id: str
+
+
+@app.post("/api/design/projects/{project_id}/validate")
+def design_validate(project_id: int, body: DesignValidate) -> dict:
+    return _act(CALLIGRAPHER, "design.validate",
+                {"project_id": project_id, "variant_id": body.variant_id})
+
+
+class DesignApprove(BaseModel):
+    variant_id: str
+    approver: str = "owner"
+    note: str = ""
+
+
+@app.post("/api/design/projects/{project_id}/approve")
+def design_approve(project_id: int, body: DesignApprove) -> dict:
+    return _act(CALLIGRAPHER, "design.approve", {"project_id": project_id, **body.model_dump()})
+
+
+class DesignExport(BaseModel):
+    brief: dict = {}
+
+
+@app.post("/api/design/projects/{project_id}/export")
+def design_export(project_id: int, body: DesignExport) -> dict:
+    return _act(CALLIGRAPHER, "design.export_package",
+                {"project_id": project_id, "brief": body.brief})
+
+
+@app.get("/api/design/projects/{project_id}/variants/{variant_id}.svg")
+def design_variant_svg(project_id: int, variant_id: str):
+    from fastapi.responses import Response
+
+    with kernel.db_factory() as db:
+        project = db.get(DesignProject, project_id)
+    if project is None:
+        raise HTTPException(404, "design project not found")
+    variant = next((v for v in (project.variants or [])
+                    if v.get("variant_id") == variant_id), None)
+    if variant is None or not variant.get("svg"):
+        raise HTTPException(404, f"variant '{variant_id}' has no artwork yet")
+    return Response(content=variant["svg"], media_type="image/svg+xml")
+
+
+@app.get("/api/design/projects/{project_id}/files/{file_key}")
+def design_file(project_id: int, file_key: str):
+    with kernel.db_factory() as db:
+        project = db.get(DesignProject, project_id)
+    if project is None or not project.export_manifest:
+        raise HTTPException(404, "no export package for this project")
+    path = (project.export_manifest.get("files") or {}).get(file_key)
+    if not path or not Path(path).exists():
+        raise HTTPException(404, f"file '{file_key}' not in the package")
+    return FileResponse(path)
+
+
+@app.get("/api/design/audit/{project_id}")
+def design_audit(project_id: int) -> dict:
+    prov = kernel.adapters.provenance
+    return {"project_id": project_id, "chain": prov.chain(f"design-{project_id}")}
 
 
 # -------------------------------------------------------------- workshop ----

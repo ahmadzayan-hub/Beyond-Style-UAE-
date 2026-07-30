@@ -29,8 +29,55 @@ const REF_ATTRS = [
   { form: { silhouette: "charm cluster", dominant_geometry: "circle" }, motif: { primary: "falcon", cultural_register: "khaleeji" }, material_finish: { apparent_metal: "yellow gold tone", finish: "high polish" }, commercial: { occasion: "birthday", perceived_tier: "mid", target_segment: "men" } },
 ];
 
+const AUTHENTICITY =
+  "Diwani-INSPIRED composition over a licensed base font; not certified traditional Diwani Jali";
+
+const MFG_CHECKS = [
+  { check: "geometry_present", ok: true, detail: "area 32.08 mm²" },
+  { check: "paths_closed_and_valid", ok: true, detail: "all rings valid" },
+  { check: "min_stroke", ok: true, detail: "erosion by 0.35 mm keeps 37% of area (threshold 35%)" },
+  { check: "min_gap", ok: true, detail: "6 components -> 4 after 0.23 mm dilation" },
+  { check: "edge_clearance", ok: true, detail: "0.000 mm² outside the safe diameter" },
+  { check: "tiny_islands", ok: true, detail: "0 island(s) below 0.29 mm²" },
+  { check: "scale_and_units", ok: true, detail: "artwork 12.6 × 6.6 mm inside 20.0 mm face" },
+];
+
+/** The زهران reference project, produced by the real deterministic pipeline. */
+const DESIGN_PROJECT = {
+  id: 1,
+  inscription: "زهران",
+  normalized_inscription: "زهران",
+  item_type: "cufflink",
+  status: "workshop_approved",
+  selected_variant: "manufacturing_optimized",
+  approver: "owner",
+  created_at: now(),
+  frame: { face_diameter_mm: 20, safe_diameter_mm: 17, edge_clearance_mm: 1.5, min_stroke_mm: 0.7, min_gap_mm: 0.45 },
+  letter_sequence: [
+    { char: "ز", codepoint: "U+0632", name: "ARABIC LETTER ZAIN" },
+    { char: "ه", codepoint: "U+0647", name: "ARABIC LETTER HEH" },
+    { char: "ر", codepoint: "U+0631", name: "ARABIC LETTER REH" },
+    { char: "ا", codepoint: "U+0627", name: "ARABIC LETTER ALEF" },
+    { char: "ن", codepoint: "U+0646", name: "ARABIC LETTER NOON" },
+  ],
+  verification: { passed: true, status: "typography_verified", issues: [] },
+  variants: [
+    { variant_id: "luxury_diwani_jali", font: "Amiri-Regular", spelling_verified: true, legibility: 0.71, feasibility_hint: 0.55, text_mm: [13.6, 8.9], validation_passed: false,
+      meta: { label_en: "Luxury Diwani Jali (inspired)", label_ar: "ديواني جلي فاخر (مستوحى)", expert_review_recommended: true, notes: "rich overlap and curved baseline", authenticity: AUTHENTICITY } },
+    { variant_id: "balanced_diwani", font: "Amiri-Regular", spelling_verified: true, legibility: 0.87, feasibility_hint: 0.6, text_mm: [12.2, 8.1], validation_passed: false,
+      meta: { label_en: "Balanced Diwani (inspired)", label_ar: "ديواني متوازن (مستوحى)", expert_review_recommended: false, notes: "elegant and easier to read", authenticity: AUTHENTICITY } },
+    { variant_id: "manufacturing_optimized", font: "Amiri-Bold", spelling_verified: true, legibility: 1, feasibility_hint: 1, text_mm: [12.6, 6.6], validation_passed: true,
+      meta: { label_en: "Manufacturing-Optimized", label_ar: "محسّن للتصنيع", expert_review_recommended: false, notes: "bolder strokes, safer spacing", authenticity: AUTHENTICITY } },
+  ],
+  validations: { manufacturing_optimized: { passed: true, checks: MFG_CHECKS } },
+  export_manifest: {
+    approval_id: "BS-DS-1-MANU",
+    files: { svg: "demo", png_flat: "demo", png_enamel_macro: "demo", png_pair: "demo" },
+  },
+};
+
 const DATA: Record<string, unknown> = {
-  "/api/health": { ok: true, agents: ["custodian", "analyst", "designer", "producer", "publisher"], skills: 44 },
+  "/api/health": { ok: true, agents: ["custodian", "analyst", "designer", "producer", "publisher", "calligrapher"], skills: 51 },
   "/api/policies": {
     thresholds: { originality_max_similarity: 0.86, corpus_min_references: 40, corpus_min_sources: 12, provenance_min_sources: 3, price_floor_aed: 265 },
     policies: [
@@ -94,11 +141,14 @@ const DATA: Record<string, unknown> = {
     { name: "designer", role: "Concept origination", display_name: "Amir", tagline: "original concepts, text-only", avatar_path: "", grant: { allow: [], deny: [] } },
     { name: "producer", role: "Workshop specification", display_name: "Hana", tagline: "specs & pricing bands", avatar_path: "", grant: { allow: [], deny: [] } },
     { name: "publisher", role: "Export guard", display_name: "Noor", tagline: "manifested exports only", avatar_path: "", grant: { allow: [], deny: [] } },
+    { name: "calligrapher", role: "Deterministic typography & workshop files", display_name: "Rashid", tagline: "provable spelling, verified vectors", avatar_path: "", grant: { allow: [], deny: [] } },
   ] },
   "/api/runs": { runs: [{ id: 1, state: "workshop_spec", history: [] }] },
   "/api/progress": { milestones: [{ id: 1, title: "First catalogue export", status: "in_progress", notes: "" }] },
   "/api/sessions-log": { sessions: [] },
   "/api/brain/notes": { notes: [{ id: 1, title: "Clasp rule", tags: "workshop", created_at: now() }] },
+  "/api/design/projects": { projects: [DESIGN_PROJECT] },
+  "/api/design/projects/1": DESIGN_PROJECT,
 };
 
 export function demoResponse(path: string): unknown | undefined {
@@ -111,6 +161,18 @@ export function demoImageUrl(path: string): string | null {
   if (m) return `/demo/asset${m[1]}.png`;
   m = path.match(/^\/api\/concepts\/(\d)\/image/);
   if (m) return `/demo/concept${m[1]}.png`;
+  m = path.match(/^\/api\/design\/projects\/\d+\/variants\/(\w+)\.svg/);
+  if (m) return `/demo/design_${m[1]}.svg`;
+  m = path.match(/^\/api\/design\/projects\/\d+\/files\/(\w+)/);
+  if (m) {
+    const files: Record<string, string> = {
+      svg: "/demo/design_manufacturing_optimized.svg",
+      png_flat: "/demo/design_flat.png",
+      png_enamel_macro: "/demo/design_macro.png",
+      png_pair: "/demo/design_pair.png",
+    };
+    return files[m[1]] ?? null;
+  }
   if (path.startsWith("/api/agents/") && path.includes("/avatar")) return null;
   return null;
 }

@@ -51,7 +51,7 @@ def test_metrics_behind_auth(client):
 def test_agent_profiles_and_avatar_roundtrip(client):
     headers = {"Authorization": "Bearer test-token-123"}
     agents = client.get("/api/agents/profiles", headers=headers).json()["agents"]
-    assert {a["name"] for a in agents} == {"custodian", "analyst", "designer", "producer", "publisher"}
+    assert {a["name"] for a in agents} == {"custodian", "analyst", "designer", "producer", "publisher", "calligrapher"}
 
     client.post("/api/agents/analyst/profile", headers=headers,
                 json={"display_name": "Layla", "tagline": "trend synthesis"})

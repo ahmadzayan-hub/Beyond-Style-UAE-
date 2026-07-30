@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   Archive, BadgeCheck, Cpu, Gem, Hammer, Landmark, Languages, LineChart,
-  ScrollText, ShieldAlert,
+  PenTool, ScrollText, ShieldAlert,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
@@ -11,6 +11,7 @@ import { useLang, useT } from "./i18n";
 import Command from "./pages/Command";
 import Corpus from "./pages/Corpus";
 import Custody from "./pages/Custody";
+import DesignStudio from "./pages/DesignStudio";
 import Studio from "./pages/Studio";
 import Trends from "./pages/Trends";
 import Workshop from "./pages/Workshop";
@@ -21,6 +22,7 @@ const NAV = [
   { to: "/corpus", key: "corpus", icon: Landmark },
   { to: "/trends", key: "trends", icon: LineChart },
   { to: "/studio", key: "studio", icon: Gem },
+  { to: "/design", key: "design_studio", icon: PenTool },
   { to: "/workshop", key: "workshop", icon: Hammer },
 ];
 
@@ -206,6 +208,7 @@ export default function App() {
           <Route path="/corpus" element={<Corpus />} />
           <Route path="/trends" element={<Trends />} />
           <Route path="/studio" element={<Studio />} />
+          <Route path="/design" element={<DesignStudio />} />
           <Route path="/workshop" element={<Workshop />} />
         </Routes>
       </main>

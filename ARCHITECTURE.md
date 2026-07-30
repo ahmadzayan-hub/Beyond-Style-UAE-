@@ -49,6 +49,7 @@ single place adapters meet the kernel.
 | Designer | concept origination | `generate.image` (text only), `concept.*`, `originality.gate`, `brain.search` | every image-bearing tool incl. `vision.extract`, `library.read_binary`, `library.*`, `graph.*` |
 | Producer | workshop spec | `spec.*`, `pricing.*`, `memory.domain.*`, `brain.search` | `generate.*`, `export.*` |
 | Publisher | export guard | `export.*`, `manifest.*`, `ledger.append` | `generate.*`, `library.ingest` |
+| Calligrapher | design studio (deterministic typography → workshop files) | `design.*`, `brain.search` | `generate.image`, `vision.extract`, `library.*`, `graph.*`, `export.*`, `asset.*` |
 
 `brain.search` is read-only access to the owner's Second Brain notes; no
 agent holds a brain-write grant. Video extraction is Custodian-only and

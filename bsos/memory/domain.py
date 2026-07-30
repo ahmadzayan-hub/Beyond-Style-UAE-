@@ -111,6 +111,38 @@ class Product(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utcnow)
 
 
+class DesignProject(SQLModel, table=True):
+    """AI Custom Design Studio project: verified inscription → workshop files.
+
+    ``status`` is the customer-visible trust ladder and it only moves through
+    skills, fail-closed:
+    draft → typography_verified (deterministic spelling check passed)
+          → variants_composed   (3 Diwani-inspired variants exist)
+          → manufacturing_checked (selected variant passed geometry validation)
+          → workshop_approved   (human approval recorded)
+    ``human_review`` is the terminal state for any verification failure.
+    AI concept imagery, when present, is labelled concept-only and never
+    advances this ladder.
+    """
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    inscription: str
+    normalized_inscription: str = ""
+    item_type: str = "cufflink"  # cufflink|pendant|bracelet|ring|brooch|coin|corporate_gift
+    frame: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    letter_sequence: list = Field(default_factory=list, sa_column=Column(JSON))
+    verification: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    variants: list = Field(default_factory=list, sa_column=Column(JSON))
+    validations: dict = Field(default_factory=dict, sa_column=Column(JSON))  # variant_id → report
+    selected_variant: str = ""
+    status: str = "draft"
+    approver: str = ""
+    approval_note: str = ""
+    export_manifest: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+
+
 class Escalation(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     policy_id: str
