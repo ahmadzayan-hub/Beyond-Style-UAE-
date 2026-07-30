@@ -17,3 +17,4 @@ exports/catalogue/*
 .DS_Store
 backups/
 ui/tsconfig.tsbuildinfo
+ui/dist-demo/
