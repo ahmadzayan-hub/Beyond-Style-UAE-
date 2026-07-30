@@ -4,7 +4,7 @@ import {
   PenTool, ScrollText, ShieldAlert,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { api, ApiError, authedUrl, Escalation, FeedEvent, getToken, setToken } from "./api";
 import { DEMO, startDemoFeed } from "./demo";
 import { useLang, useT } from "./i18n";
@@ -12,6 +12,7 @@ import Command from "./pages/Command";
 import Corpus from "./pages/Corpus";
 import Custody from "./pages/Custody";
 import DesignStudio from "./pages/DesignStudio";
+import Reveal from "./pages/Reveal";
 import Studio from "./pages/Studio";
 import Trends from "./pages/Trends";
 import Workshop from "./pages/Workshop";
@@ -159,6 +160,19 @@ function Escalations() {
 export default function App() {
   const t = useT();
   const { lang, setLang } = useLang();
+  const location = useLocation();
+  // Showroom mode: the Reveal screen is a full-bleed customer view with no
+  // operator chrome — what the customer sees on the studio screen or phone.
+  if (location.pathname.startsWith("/reveal")) {
+    return (
+      <TokenGate>
+        <Routes>
+          <Route path="/reveal/:id" element={<Reveal />} />
+          <Route path="/reveal" element={<Navigate to="/reveal/1" replace />} />
+        </Routes>
+      </TokenGate>
+    );
+  }
   return (
     <TokenGate>
     {DEMO && (

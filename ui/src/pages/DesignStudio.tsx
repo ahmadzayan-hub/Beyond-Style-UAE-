@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  BadgeCheck, CheckCircle2, Download, FileWarning, PenTool, Ruler, ShieldCheck, Type,
+  BadgeCheck, CheckCircle2, Download, FileWarning, MonitorPlay, PenTool, Ruler,
+  ShieldCheck, Type,
 } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { api, authedUrl, DesignProjectDetail, DesignProjectSummary } from "../api";
 import { useT } from "../i18n";
 
@@ -180,7 +182,15 @@ export default function DesignStudio() {
               <div className="card p-4 space-y-3">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <span dir="rtl" className="font-display text-2xl">{p.inscription}</span>
-                  <StatusLadder status={p.status} />
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <StatusLadder status={p.status} />
+                    {p.variants?.length > 0 && (
+                      <Link to={`/reveal/${p.id}`} className="btn-primary !text-xs !py-1.5">
+                        <MonitorPlay size={13} className="inline me-1" />
+                        {t("present_customer")}
+                      </Link>
+                    )}
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {p.letter_sequence.map((l, i) => (

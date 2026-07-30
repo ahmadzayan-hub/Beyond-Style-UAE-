@@ -231,6 +231,43 @@ def export_package(ctx: ToolContext, project_id: int, brief: dict | None = None)
     return {"project_id": project_id, "approval_id": approval_id, "files": files}
 
 
+@registry.register("design.pricing_rules", required_grant="design.pricing_rules", tags=(),
+                   description="The configurable pricing rules (AED starting prices) served to the showroom UI.")
+def pricing_rules(ctx: ToolContext) -> dict[str, Any]:
+    from bsos.design_studio.pricing import PRICING_RULES
+
+    return {"rules": PRICING_RULES}
+
+
+@registry.register("design.quote", required_grant="design.quote",
+                   tags=(), side_effects="db",
+                   description="Authoritative starting-price quote for a variant; recorded in provenance.")
+def quote(ctx: ToolContext, project_id: int, variant_id: str,
+          material: str = "silver_925", finish: str = "mirror_polish",
+          quantity: int = 1) -> dict[str, Any]:
+    from bsos.design_studio.pricing import estimate
+
+    project = ctx.db.get(DesignProject, project_id)
+    if project is None:
+        raise ValueError(f"design project '{project_id}' not found")
+    if not project.variants:
+        raise ValueError(f"project '{project_id}' has no composed variants to price")
+    if variant_id not in {v.get("variant_id") for v in project.variants}:
+        raise ValueError(f"unknown variant '{variant_id}'")
+
+    letters = len([c for c in project.letter_sequence if c.get("char", "").strip()])
+    result = estimate(project.item_type, variant_id, letters,
+                      material=material, finish=finish, quantity=quantity)
+    # A quote never implies production readiness — the trust ladder is separate.
+    result["project_status"] = project.status
+
+    ctx.adapters.require("provenance").append(_prov_key(project_id), "price_quote", {
+        "variant": variant_id, "material": material, "finish": finish,
+        "quantity": quantity, "result": result,
+    })
+    return {"project_id": project_id, "variant": variant_id, **result}
+
+
 @registry.register("design.project_list", required_grant="design.project_list", tags=(),
                    description="List design projects newest-first (SVG bodies omitted).")
 def project_list(ctx: ToolContext, limit: int = 50) -> dict[str, Any]:

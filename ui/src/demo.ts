@@ -76,6 +76,34 @@ const DESIGN_PROJECT = {
   },
 };
 
+/** Same rules the server serves from /api/design/pricing (AED, starting prices). */
+const PRICING_RULES = {
+  currency: "AED",
+  price_floor_aed: 265,
+  policy_note_en: "Starting price. Final price is confirmed with the customer on WhatsApp.",
+  policy_note_ar: "سعر ابتدائي. يُؤكد السعر النهائي مع العميل عبر واتساب.",
+  base_by_item: { cufflink: 295, pendant: 265, bracelet: 285, ring: 275, brooch: 295, coin: 320, corporate_gift: 350 },
+  material_multiplier: {
+    silver_925: { label_en: "925 Silver", label_ar: "فضة ٩٢٥", factor: 1.0 },
+    gold_plated: { label_en: "Gold plated", label_ar: "مطلي ذهب", factor: 1.18 },
+    rose_gold_plated: { label_en: "Rose gold plated", label_ar: "مطلي ذهب وردي", factor: 1.18 },
+    oxidized_silver: { label_en: "Oxidized silver", label_ar: "فضة مؤكسدة", factor: 1.08 },
+    solid_gold_18k: { label_en: "18k Gold", label_ar: "ذهب ١٨ قيراط", factor: null, quote_on_request: true },
+  },
+  finish_adder: {
+    mirror_polish: { label_en: "Mirror polish", label_ar: "تلميع مرآة", aed: 0 },
+    brushed: { label_en: "Brushed", label_ar: "مصقول ناعم", aed: 15 },
+    black_enamel: { label_en: "Black enamel", label_ar: "مينا سوداء", aed: 45 },
+    white_enamel: { label_en: "White enamel", label_ar: "مينا بيضاء", aed: 45 },
+  },
+  variant_factor: { luxury_diwani_jali: 1.25, balanced_diwani: 1.1, manufacturing_optimized: 1.0 },
+  per_letter_after: { letters_included: 4, aed_per_letter: 12 },
+  quantity_tiers: [
+    { min_qty: 10, factor: 0.85 }, { min_qty: 5, factor: 0.9 },
+    { min_qty: 2, factor: 0.95 }, { min_qty: 1, factor: 1.0 },
+  ],
+};
+
 const DATA: Record<string, unknown> = {
   "/api/health": { ok: true, agents: ["custodian", "analyst", "designer", "producer", "publisher", "calligrapher"], skills: 51 },
   "/api/policies": {
@@ -149,6 +177,7 @@ const DATA: Record<string, unknown> = {
   "/api/brain/notes": { notes: [{ id: 1, title: "Clasp rule", tags: "workshop", created_at: now() }] },
   "/api/design/projects": { projects: [DESIGN_PROJECT] },
   "/api/design/projects/1": DESIGN_PROJECT,
+  "/api/design/pricing": { rules: PRICING_RULES },
 };
 
 export function demoResponse(path: string): unknown | undefined {

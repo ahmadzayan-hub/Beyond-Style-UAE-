@@ -126,6 +126,27 @@ const STRINGS: Record<string, { en: string; ar: string }> = {
   item_brooch: { en: "Brooch", ar: "بروش" },
   item_coin: { en: "Coin / medallion", ar: "عملة / ميدالية" },
   item_corporate_gift: { en: "Corporate gift", ar: "هدية مؤسسية" },
+  design_reveal: { en: "Design Reveal", ar: "كشف التصميم" },
+  back_studio: { en: "Studio", ar: "الاستوديو" },
+  skip_reveal: { en: "skip", ar: "تخطي" },
+  present_customer: { en: "Present to customer", ar: "عرض على العميل" },
+  material: { en: "Material", ar: "المعدن" },
+  finish: { en: "Finish", ar: "التشطيب" },
+  starting_price_label: { en: "Starting price", ar: "السعر الابتدائي" },
+  quote_on_request: { en: "Priced on request", ar: "السعر عند الطلب" },
+  total: { en: "Total", ar: "الإجمالي" },
+  tune_design: { en: "Tune the design", ar: "عدّل التصميم" },
+  rx_luxurious: { en: "More luxurious", ar: "أكثر فخامة" },
+  rx_simpler: { en: "Simpler", ar: "أبسط" },
+  rx_readable: { en: "Easier to read", ar: "أسهل قراءة" },
+  rx_thicker: { en: "Thicker letters", ar: "حروف أسمك" },
+  rx_silver: { en: "Classic silver", ar: "فضي كلاسيكي" },
+  rx_no_enamel: { en: "No enamel", ar: "بدون مينا" },
+  continue_whatsapp: { en: "Continue on WhatsApp", ar: "المتابعة عبر واتساب" },
+  reveal_disclaimer: {
+    en: "Preview is an approximate visualization of the verified vector artwork. Production files are released only after workshop approval.",
+    ar: "المعاينة تصور تقريبي للرسم المتجهي المدقّق. تصدر ملفات الإنتاج فقط بعد اعتماد الورشة.",
+  },
 };
 
 const LangContext = createContext<{ lang: Lang; setLang: (l: Lang) => void }>({

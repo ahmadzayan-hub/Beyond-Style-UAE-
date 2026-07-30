@@ -74,6 +74,25 @@ geometry validation (including a proof that shrinking the rules flips the
 verdict), the fail-closed ladder, grant isolation (only the `calligrapher`
 agent holds `design.*`), and the full export package.
 
+## Showroom: Design Reveal + pricing
+
+`/reveal/:projectId` is the customer-facing screen (studio display or the
+customer's phone — mobile-first, bilingual, RTL). It animates
+letters → calligraphy → product, then goes fully interactive: live material
+switching (925 silver / gold / rose gold / oxidized / 18k) recolors the
+verified vector client-side, variant tabs, finish selection, quantity
+stepper, and "tune the design" reactions that reconfigure the piece.
+Prices come from `bsos/design_studio/pricing.py` — configurable rules
+(base by item, material multiplier, variant complexity factor, finish
+adder, per-letter adder, quantity tiers, 265 AED floor) served via
+`GET /api/design/pricing` so the screen prices instantly; the authoritative
+quote is recorded with `design.quote` (provenanced, and it never advances
+the production ladder). All prices are STARTING prices confirmed on
+WhatsApp; the "Continue on WhatsApp" CTA carries the exact configuration.
+18k solid gold is quote-on-request by design. The trust ladder stays
+visible on the customer screen, with a disclaimer that previews are
+approximate and production files release only after workshop approval.
+
 ## Agent
 
 `calligrapher` — allow `design.*`, `brain.search`; deny generation, library,

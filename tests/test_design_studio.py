@@ -144,6 +144,44 @@ def test_unverified_inscription_cannot_compose(kernel):
                       {"project_id": result["project_id"]})
 
 
+# ---------------------------------------------------------------- pricing ----
+
+def test_pricing_is_deterministic_with_floor_and_tiers():
+    from bsos.design_studio.pricing import PRICING_RULES, estimate
+
+    single = estimate("cufflink", "manufacturing_optimized", 5)
+    assert single["is_starting_price"] and single["currency"] == "AED"
+    assert single["unit_price_aed"] >= PRICING_RULES["price_floor_aed"]
+    assert single == estimate("cufflink", "manufacturing_optimized", 5)
+
+    bulk = estimate("cufflink", "manufacturing_optimized", 5, quantity=10)
+    assert bulk["unit_price_aed"] < single["unit_price_aed"]
+    assert bulk["total_aed"] == bulk["unit_price_aed"] * 10
+
+    gold = estimate("cufflink", "luxury_diwani_jali", 5, material="gold_plated",
+                    finish="black_enamel")
+    assert gold["unit_price_aed"] > single["unit_price_aed"]
+
+    solid = estimate("pendant", "balanced_diwani", 3, material="solid_gold_18k")
+    assert solid["quote_on_request"] is True
+
+
+def test_quote_skill_records_provenance_without_touching_ladder(kernel, project):
+    kernel.invoke("calligrapher", "design.compose", {"project_id": project})
+    q = kernel.invoke("calligrapher", "design.quote", {
+        "project_id": project, "variant_id": "luxury_diwani_jali",
+        "material": "gold_plated", "finish": "black_enamel", "quantity": 2})
+    assert q["is_starting_price"] and q["unit_price_aed"] > 0
+    # quoting never advances production status
+    assert q["project_status"] == "variants_composed"
+    events = [e["event"] for e in kernel.adapters.provenance.chain(f"design-{project}")]
+    assert events[-1] == "price_quote"
+
+    with pytest.raises(ValueError, match="unknown variant"):
+        kernel.invoke("calligrapher", "design.quote", {
+            "project_id": project, "variant_id": "nope"})
+
+
 def test_font_registry_never_downloads(kernel):
     fonts = kernel.invoke("calligrapher", "design.fonts", {})
     assert "no runtime font downloads" in fonts["policy"]

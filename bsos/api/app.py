@@ -487,6 +487,23 @@ def design_export(project_id: int, body: DesignExport) -> dict:
                 {"project_id": project_id, "brief": body.brief})
 
 
+@app.get("/api/design/pricing")
+def design_pricing() -> dict:
+    return _act(CALLIGRAPHER, "design.pricing_rules")
+
+
+class DesignQuote(BaseModel):
+    variant_id: str
+    material: str = "silver_925"
+    finish: str = "mirror_polish"
+    quantity: int = 1
+
+
+@app.post("/api/design/projects/{project_id}/quote")
+def design_quote(project_id: int, body: DesignQuote) -> dict:
+    return _act(CALLIGRAPHER, "design.quote", {"project_id": project_id, **body.model_dump()})
+
+
 @app.get("/api/design/projects/{project_id}/variants/{variant_id}.svg")
 def design_variant_svg(project_id: int, variant_id: str):
     from fastapi.responses import Response
