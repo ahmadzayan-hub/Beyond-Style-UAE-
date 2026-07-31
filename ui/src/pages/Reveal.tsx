@@ -16,6 +16,7 @@ import { estimatePrice, PricingRules } from "../pricing";
  */
 
 const INSTAGRAM_URL = "https://www.instagram.com/beyond.style.uae";
+const WHATSAPP_NUMBER = "971555615509"; // Beyond Style UAE business WhatsApp
 
 const MATERIALS = ["silver_925", "gold_plated", "rose_gold_plated", "oxidized_silver", "solid_gold_18k"] as const;
 const FINISHES = ["black_enamel", "white_enamel", "mirror_polish", "brushed"] as const;
@@ -124,7 +125,7 @@ export default function Reveal() {
     const msg = lang === "ar"
       ? `مرحباً Beyond Style! أعجبني تصميم «${p.inscription}» — ${variant.meta.label_ar}، ${matMeta?.label_ar ?? material}، ${finMeta?.label_ar ?? finish}، الكمية ${quantity}. السعر الابتدائي ${priceTxt}. أود المتابعة.`
       : `Hello Beyond Style! I love the "${p.inscription}" design — ${variant.meta.label_en}, ${matMeta?.label_en ?? material}, ${finMeta?.label_en ?? finish}, qty ${quantity}. Starting price ${priceTxt}. I'd like to proceed.`;
-    return `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
   }, [p, variant, material, finish, quantity, price, lang, matMeta, finMeta]);
 
   // Reaction chips are real controls: each one changes the configuration.
