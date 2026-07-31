@@ -182,6 +182,26 @@ def test_quote_skill_records_provenance_without_touching_ladder(kernel, project)
             "project_id": project, "variant_id": "nope"})
 
 
+# --------------------------------------------------------- transliteration ----
+
+def test_transliteration_dictionary_and_flagged_fallback(kernel):
+    r = kernel.invoke("calligrapher", "design.transliterate", {"text": "Zahran"})
+    top = r["words"][0]["suggestions"][0]
+    assert top["arabic"] == ZAHRAN
+    assert top["source"] == "dictionary" and not top["requires_confirmation"]
+    assert top["typography_verifiable"] is True
+
+    # the three-name necklace example from the spec
+    r = kernel.invoke("calligrapher", "design.transliterate", {"text": "Shaghaf Farah Rose"})
+    assert r["combined"][0]["arabic"] == "شغف فرح روز"
+    assert r["combined"][0]["typography_verifiable"] is True
+
+    # unknown words fall back to a rule-based guess that MUST be flagged
+    r = kernel.invoke("calligrapher", "design.transliterate", {"text": "Qwertyname"})
+    fallback = r["words"][0]["suggestions"][0]
+    assert fallback["source"] == "rules" and fallback["requires_confirmation"] is True
+
+
 def test_font_registry_never_downloads(kernel):
     fonts = kernel.invoke("calligrapher", "design.fonts", {})
     assert "no runtime font downloads" in fonts["policy"]

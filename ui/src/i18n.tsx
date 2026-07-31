@@ -143,6 +143,12 @@ const STRINGS: Record<string, { en: string; ar: string }> = {
   rx_silver: { en: "Classic silver", ar: "فضي كلاسيكي" },
   rx_no_enamel: { en: "No enamel", ar: "بدون مينا" },
   continue_whatsapp: { en: "Continue on WhatsApp", ar: "المتابعة عبر واتساب" },
+  suggest_arabic: { en: "Suggest Arabic spelling", ar: "اقتراح الكتابة بالعربية" },
+  confirm_spelling_flag: { en: "confirm spelling", ar: "أكد الإملاء" },
+  suggestion_note: {
+    en: "Suggestions come from a curated name dictionary (or a flagged letter-mapping guess) — never from an image model. The confirmed Arabic is still verified letter-by-letter.",
+    ar: "الاقتراحات من قاموس أسماء منسق (أو تقريب حرفي مُعلَّم) — وليست من نموذج صور أبدًا. النص العربي المؤكد يُدقق حرفًا حرفًا.",
+  },
   reveal_disclaimer: {
     en: "Preview is an approximate visualization of the verified vector artwork. Production files are released only after workshop approval.",
     ar: "المعاينة تصور تقريبي للرسم المتجهي المدقّق. تصدر ملفات الإنتاج فقط بعد اعتماد الورشة.",

@@ -206,6 +206,38 @@ export function demoImageUrl(path: string): string | null {
   return null;
 }
 
+/** Client-side mirror of the transliteration dictionary for the static demo. */
+const DEMO_NAMES: Record<string, string> = {
+  zahran: "زهران", mohammed: "محمد", muhammad: "محمد", ahmed: "أحمد", ahmad: "أحمد",
+  ali: "علي", omar: "عمر", khalid: "خالد", khaled: "خالد", hamdan: "حمدان",
+  rashid: "راشد", zayed: "زايد", salem: "سالم", saif: "سيف", sultan: "سلطان",
+  fatima: "فاطمة", maryam: "مريم", mariam: "مريم", aisha: "عائشة", sara: "سارة",
+  sarah: "سارة", noura: "نورة", noor: "نور", layla: "ليلى", reem: "ريم",
+  shaghaf: "شغف", farah: "فرح", rose: "روز", hessa: "حصة", moza: "موزة",
+};
+
+export function demoTransliterate(text: string) {
+  const words = text.trim().split(/[\s,،]+/).filter(Boolean);
+  const perWord = words.map((w) => {
+    const hit = DEMO_NAMES[w.replace(/[^A-Za-z]/g, "").toLowerCase()];
+    return {
+      latin: w,
+      suggestions: hit
+        ? [{ arabic: hit, source: "dictionary", requires_confirmation: false, typography_verifiable: true }]
+        : [{ arabic: "", source: "rules", requires_confirmation: true, typography_verifiable: false }],
+    };
+  });
+  const ok = perWord.every((w) => w.suggestions[0].arabic);
+  return {
+    input: text,
+    words: perWord,
+    combined: ok
+      ? [{ arabic: perWord.map((w) => w.suggestions[0].arabic).join(" "),
+           source: "dictionary", requires_confirmation: false, typography_verifiable: true }]
+      : [],
+  };
+}
+
 export const DEMO_BLOCKED_MESSAGE =
   "Demo preview: actions are disabled here. Run BSOS locally (make dev) for the real, kernel-enforced system.";
 

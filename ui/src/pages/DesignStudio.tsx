@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  BadgeCheck, CheckCircle2, Download, FileWarning, MonitorPlay, PenTool, Ruler,
-  ShieldCheck, Type,
+  BadgeCheck, CheckCircle2, Download, FileWarning, Languages, MonitorPlay, PenTool,
+  Ruler, ShieldCheck, Type,
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api, authedUrl, DesignProjectDetail, DesignProjectSummary } from "../api";
+import { DEMO, demoTransliterate } from "../demo";
 import { useT } from "../i18n";
 
 /**
@@ -57,6 +58,29 @@ export default function DesignStudio() {
   const [inscription, setInscription] = useState("");
   const [itemType, setItemType] = useState("cufflink");
   const [selected, setSelected] = useState<number | null>(null);
+  const [arabicSuggestions, setArabicSuggestions] = useState<
+    { arabic: string; requires_confirmation: boolean; typography_verifiable: boolean }[]
+  >([]);
+
+  const hasLatin = /[A-Za-z]/.test(inscription);
+
+  const suggestArabic = async () => {
+    const result = DEMO
+      ? demoTransliterate(inscription)
+      : await api.post<ReturnType<typeof demoTransliterate>>(
+          "/api/design/transliterate", { text: inscription });
+    const raw = [
+      ...result.combined,
+      ...(result.words.length === 1 ? result.words[0].suggestions : []),
+    ].filter((s) => s.arabic);
+    const seen = new Set<string>();
+    setArabicSuggestions(raw.filter((s) => !seen.has(s.arabic) && seen.add(s.arabic))
+      .map((s) => ({
+        arabic: s.arabic,
+        requires_confirmation: !!s.requires_confirmation,
+        typography_verifiable: !!(s as { typography_verifiable?: boolean }).typography_verifiable,
+      })));
+  };
 
   const projects = useQuery({
     queryKey: ["design-projects"],
@@ -120,10 +144,9 @@ export default function DesignStudio() {
         </h3>
         <div className="flex flex-wrap gap-2 items-center">
           <input
-            dir="rtl"
-            lang="ar"
+            dir="auto"
             className="border border-stone-300 rounded px-3 py-2 text-lg w-64"
-            placeholder="زهران"
+            placeholder="زهران / Zahran"
             value={inscription}
             onChange={(e) => setInscription(e.target.value)}
           />
@@ -147,6 +170,36 @@ export default function DesignStudio() {
             {t("verify_spelling")}
           </button>
         </div>
+        {hasLatin && (
+          <div className="space-y-2">
+            <button className="btn !text-xs" onClick={suggestArabic}>
+              <Languages size={12} className="inline me-1" />
+              {t("suggest_arabic")}
+            </button>
+            {arabicSuggestions.length > 0 && (
+              <div className="flex flex-wrap gap-2 items-center">
+                {arabicSuggestions.map((s) => (
+                  <button key={s.arabic}
+                          className={`px-3 py-1.5 rounded border text-lg transition-colors ${
+                            s.requires_confirmation
+                              ? "border-amber-flag/50 hover:border-amber-flag"
+                              : "border-stone-300 hover:border-gold-deep"
+                          }`}
+                          dir="rtl"
+                          onClick={() => { setInscription(s.arabic); setArabicSuggestions([]); }}>
+                    {s.arabic}
+                    {s.requires_confirmation && (
+                      <span className="block text-[9px] text-amber-flag" dir="ltr">
+                        {t("confirm_spelling_flag")}
+                      </span>
+                    )}
+                  </button>
+                ))}
+                <span className="text-[10px] text-stone-400 max-w-[16rem]">{t("suggestion_note")}</span>
+              </div>
+            )}
+          </div>
+        )}
         <p className="text-[11px] text-stone-400">{t("spelling_note")}</p>
       </section>
 

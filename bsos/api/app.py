@@ -492,6 +492,15 @@ def design_pricing() -> dict:
     return _act(CALLIGRAPHER, "design.pricing_rules")
 
 
+class TransliterateRequest(BaseModel):
+    text: str
+
+
+@app.post("/api/design/transliterate")
+def design_transliterate(body: TransliterateRequest) -> dict:
+    return _act(CALLIGRAPHER, "design.transliterate", {"text": body.text})
+
+
 class DesignQuote(BaseModel):
     variant_id: str
     material: str = "silver_925"

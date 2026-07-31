@@ -231,6 +231,24 @@ def export_package(ctx: ToolContext, project_id: int, brief: dict | None = None)
     return {"project_id": project_id, "approval_id": approval_id, "files": files}
 
 
+@registry.register("design.transliterate", required_grant="design.transliterate", tags=(),
+                   description="Deterministic Latin→Arabic name suggestions; each checked against the typography engine.")
+def transliterate(ctx: ToolContext, text: str, font_id: str = "Amiri-Regular") -> dict[str, Any]:
+    from bsos.design_studio.transliteration import suggest
+    from bsos.design_studio.typography import engine_for
+
+    result = suggest(text)
+    engine = engine_for(font_id)
+    # Every suggestion is pre-checked by the deterministic engine so the UI
+    # can show upfront whether the spelling would verify.
+    for word in result["words"]:
+        for s in word["suggestions"]:
+            s["typography_verifiable"] = bool(engine.shape(s["arabic"]).verified)
+    for c in result["combined"]:
+        c["typography_verifiable"] = bool(engine.shape(c["arabic"]).verified)
+    return result
+
+
 @registry.register("design.pricing_rules", required_grant="design.pricing_rules", tags=(),
                    description="The configurable pricing rules (AED starting prices) served to the showroom UI.")
 def pricing_rules(ctx: ToolContext) -> dict[str, Any]:
