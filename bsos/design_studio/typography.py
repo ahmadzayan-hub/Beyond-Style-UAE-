@@ -210,8 +210,10 @@ class TypographyEngine:
                 # Latin/other: accept any non-notdef glyph for the cluster.
                 entry["ok"] = all(n not in (".notdef",) for n in glyph_names)
             else:
+                # Glyph-name conventions vary in case (Amiri: tehMarbuta-ar,
+                # Noto: tehmarbuta-ar) — compare case-insensitively.
                 entry["ok"] = any(
-                    any(n == stem or n.startswith(stem + ".") or n.startswith(stem)
+                    any(n.lower() == stem or n.lower().startswith(stem)
                         for stem in stems)
                     for n in glyph_names
                 )

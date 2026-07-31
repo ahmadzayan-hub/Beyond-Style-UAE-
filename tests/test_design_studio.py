@@ -43,6 +43,21 @@ def test_verification_fails_closed_on_missing_glyph():
     assert shaped.verification["status"] == "human_review"
 
 
+def test_common_names_battery_verifies():
+    """Regression: Amiri's camelCase glyph names (tehMarbuta-ar, alefMaksura-ar)
+    must match the stem table — common names may never bounce to human review
+    for a case mismatch."""
+    from bsos.design_studio.typography import engine_for
+
+    engine = engine_for("Amiri-Regular")
+    names = ["نورة", "ليلى", "عائشة", "أحمد", "إبراهيم", "فاطمة", "عبدالله",
+             "سلمى", "هدى", "آمنة", "شيخة", "موزة", "جنى", "محمد", "خالد",
+             "حمدان", "زايد", "مريم", "شغف", "فرح", "روز", "حصة", "يوسف",
+             "طارق", "سارة", "علياء", "خليفة", "حسين", "وديمة"]
+    failed = [n for n in names if not engine.shape(n).verified]
+    assert not failed, f"names bounced to human_review: {failed}"
+
+
 def test_zero_width_characters_are_stripped():
     from bsos.design_studio.typography import engine_for
 

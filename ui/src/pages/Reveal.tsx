@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, BadgeCheck, Instagram, MessageCircle, RotateCcw, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { api, authedUrl, DesignProjectDetail } from "../api";
 import { useLang, useT } from "../i18n";
 import { estimatePrice, PricingRules } from "../pricing";
@@ -71,11 +71,25 @@ export default function Reveal() {
   const t = useT();
   const { lang } = useLang();
   const { id } = useParams();
-  const projectId = Number(id ?? 1);
+  const [search] = useSearchParams();
+  // /reveal/live?text=… presents a LIVE composition straight from the
+  // deterministic serverless pipeline — no stored project needed.
+  const liveText = id === "live" ? (search.get("text") ?? "") : "";
+  const projectId = Number(id === "live" ? 0 : (id ?? 1));
 
   const project = useQuery({
     queryKey: ["design-project", projectId],
     queryFn: () => api.get<DesignProjectDetail>(`/api/design/projects/${projectId}`),
+    enabled: !liveText,
+  });
+  const liveQuery = useQuery({
+    queryKey: ["studio-live", liveText],
+    queryFn: async () => {
+      const res = await fetch(`/api/studio/preview?text=${encodeURIComponent(liveText)}`);
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    enabled: !!liveText,
   });
   const pricing = useQuery({
     queryKey: ["design-pricing"],
@@ -89,13 +103,36 @@ export default function Reveal() {
   const [stage, setStage] = useState(0); // 0 letters → 1 calligraphy → 2 product
   const [svgs, setSvgs] = useState<Record<string, string>>({});
 
-  const p = project.data;
+  const p: DesignProjectDetail | undefined = liveText
+    ? (liveQuery.data && {
+        id: 0,
+        inscription: liveQuery.data.normalized,
+        normalized_inscription: liveQuery.data.normalized,
+        item_type: "cufflink",
+        status: liveQuery.data.status,
+        selected_variant: (liveQuery.data.variants ?? []).find(
+          (v: { validation_passed: boolean }) => v.validation_passed)?.variant_id ?? "",
+        created_at: "",
+        frame: {},
+        letter_sequence: liveQuery.data.letter_sequence,
+        verification: liveQuery.data.verification,
+        variants: liveQuery.data.variants ?? [],
+        validations: {},
+        approver: "",
+        export_manifest: {},
+      })
+    : project.data;
   const rules = pricing.data?.rules;
   const variant = p?.variants.find((v) => v.variant_id === variantId) ?? p?.variants[0];
 
   useEffect(() => {
     if (!p) return;
     p.variants.forEach((v) => {
+      const inline = (v as { svg?: string }).svg;
+      if (inline) {
+        setSvgs((prev) => (prev[v.variant_id] ? prev : { ...prev, [v.variant_id]: inline }));
+        return;
+      }
       const url = authedUrl(`/api/design/projects/${p.id}/variants/${v.variant_id}.svg`);
       fetch(url).then((r) => r.text()).then((txt) =>
         setSvgs((prev) => ({ ...prev, [v.variant_id]: txt })));

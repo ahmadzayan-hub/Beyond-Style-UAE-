@@ -22,6 +22,23 @@ const LADDER = [
   "workshop_approved",
 ] as const;
 
+interface LivePreview {
+  input: string;
+  normalized: string;
+  status: string;
+  letter_sequence: { char: string; codepoint: string; name: string }[];
+  verification: { passed: boolean; issues: string[] };
+  variants: {
+    variant_id: string;
+    svg: string;
+    spelling_verified: boolean;
+    validation_passed: boolean;
+    failed_checks: string[];
+    price_from_aed: number | null;
+    meta: { label_en: string; label_ar: string; authenticity: string };
+  }[];
+}
+
 function StatusLadder({ status }: { status: string }) {
   const t = useT();
   const reached = LADDER.indexOf(status as (typeof LADDER)[number]);
@@ -61,14 +78,40 @@ export default function DesignStudio() {
   const [arabicSuggestions, setArabicSuggestions] = useState<
     { arabic: string; requires_confirmation: boolean; typography_verifiable: boolean }[]
   >([]);
+  const [live, setLive] = useState<LivePreview | null>(null);
+  const [liveBusy, setLiveBusy] = useState(false);
 
   const hasLatin = /[A-Za-z]/.test(inscription);
 
+  // Hosted preview: the static demo cannot reach the kernel API, but the
+  // REAL deterministic pipeline runs serverless at /api/studio/* — any name
+  // typed here produces genuine verified variants, validation and prices.
+  const runLive = async () => {
+    setLiveBusy(true);
+    try {
+      const res = await fetch(`/api/studio/preview?text=${encodeURIComponent(inscription)}`);
+      if (!res.ok) throw new Error(await res.text());
+      setLive(await res.json());
+    } catch {
+      setLive(null);
+    } finally {
+      setLiveBusy(false);
+    }
+  };
+
   const suggestArabic = async () => {
-    const result = DEMO
-      ? demoTransliterate(inscription)
-      : await api.post<ReturnType<typeof demoTransliterate>>(
-          "/api/design/transliterate", { text: inscription });
+    let result: ReturnType<typeof demoTransliterate>;
+    if (DEMO) {
+      try {
+        const res = await fetch(`/api/studio/transliterate?text=${encodeURIComponent(inscription)}`);
+        result = res.ok ? await res.json() : demoTransliterate(inscription);
+      } catch {
+        result = demoTransliterate(inscription);
+      }
+    } else {
+      result = await api.post<ReturnType<typeof demoTransliterate>>(
+        "/api/design/transliterate", { text: inscription });
+    }
     const raw = [
       ...result.combined,
       ...(result.words.length === 1 ? result.words[0].suggestions : []),
@@ -163,11 +206,11 @@ export default function DesignStudio() {
           </select>
           <button
             className="btn-primary"
-            disabled={!inscription.trim() || create.isPending}
-            onClick={() => create.mutate()}
+            disabled={!inscription.trim() || create.isPending || liveBusy}
+            onClick={() => (DEMO ? runLive() : create.mutate())}
           >
             <ShieldCheck size={14} className="inline me-1" />
-            {t("verify_spelling")}
+            {liveBusy ? "…" : t("verify_spelling")}
           </button>
         </div>
         {hasLatin && (
@@ -202,6 +245,74 @@ export default function DesignStudio() {
         )}
         <p className="text-[11px] text-stone-400">{t("spelling_note")}</p>
       </section>
+
+      {live && (
+        <section className="card p-4 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <span dir="rtl" className="font-display text-2xl">{live.normalized}</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <StatusLadder status={live.status} />
+              {live.variants.length > 0 && (
+                <Link to={`/reveal/live?text=${encodeURIComponent(live.normalized)}`}
+                      className="btn-primary !text-xs !py-1.5">
+                  <MonitorPlay size={13} className="inline me-1" />
+                  {t("present_customer")}
+                </Link>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {live.letter_sequence.map((l, i) => (
+              <span key={i} className="chip font-mono" title={l.name}>
+                <span dir="rtl" className="text-sm me-1">{l.char}</span>{l.codepoint}
+              </span>
+            ))}
+          </div>
+          {live.verification.issues?.length > 0 && (
+            <ul className="text-xs text-deny list-disc ms-4">
+              {live.verification.issues.map((iss, i) => <li key={i}>{iss}</li>)}
+            </ul>
+          )}
+          {live.variants.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {live.variants.map((v) => (
+                <div key={v.variant_id} className="card p-3 space-y-2">
+                  <div className="w-full aspect-square bg-white rounded border border-stone-100 [&_svg]:w-full [&_svg]:h-full"
+                       dangerouslySetInnerHTML={{ __html: v.svg }} />
+                  <p className="text-sm font-medium">{v.meta.label_en}</p>
+                  <p dir="rtl" className="text-xs text-stone-500">{v.meta.label_ar}</p>
+                  <div className="flex flex-wrap gap-1">
+                    <span className="chip !bg-emerald-700/10 !text-emerald-700 !border-emerald-700/30">
+                      <BadgeCheck size={10} className="inline me-0.5" />
+                      {t("st_typography_verified")}
+                    </span>
+                    <span className={v.validation_passed
+                      ? "chip !bg-emerald-700/10 !text-emerald-700 !border-emerald-700/30"
+                      : "chip"}>
+                      {v.validation_passed ? t("st_manufacturing_checked") : t("preview_only")}
+                    </span>
+                  </div>
+                  {v.price_from_aed != null && (
+                    <p className="text-sm text-gold-deep">
+                      {t("starting_price_label")}: {v.price_from_aed} AED
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-1.5">
+                    {(["pair", "png", "svg", "pdf"] as const).map((fmt) => (
+                      <a key={fmt} className="chip hover:border-gold-deep"
+                         href={`/api/studio/export?text=${encodeURIComponent(live.normalized)}&variant=${v.variant_id}&format=${fmt}`}
+                         target="_blank" rel="noreferrer">
+                        <Download size={10} className="inline me-1" />{fmt}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="text-[10px] text-stone-400">{t("live_note")}</p>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <section className="card p-3 space-y-1.5 lg:max-h-[70vh] overflow-y-auto">

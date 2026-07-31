@@ -149,6 +149,11 @@ const STRINGS: Record<string, { en: string; ar: string }> = {
     en: "Suggestions come from a curated name dictionary (or a flagged letter-mapping guess) — never from an image model. The confirmed Arabic is still verified letter-by-letter.",
     ar: "الاقتراحات من قاموس أسماء منسق (أو تقريب حرفي مُعلَّم) — وليست من نموذج صور أبدًا. النص العربي المؤكد يُدقق حرفًا حرفًا.",
   },
+  preview_only: { en: "preview", ar: "معاينة" },
+  live_note: {
+    en: "Generated live by the deterministic pipeline: real HarfBuzz shaping, structural spelling verification, geometry validation and pricing. Downloads are customer previews — manufacturing files (DXF, technical sheet) are released only through the workshop approval workflow.",
+    ar: "مولّد مباشرة بالخط الحتمي: تشكيل هارفبز حقيقي، تدقيق إملائي بنيوي، تحقق هندسي وتسعير. التنزيلات معاينات للعميل — ملفات التصنيع (DXF والملف الفني) تصدر فقط عبر مسار اعتماد الورشة.",
+  },
   reveal_disclaimer: {
     en: "Preview is an approximate visualization of the verified vector artwork. Production files are released only after workshop approval.",
     ar: "المعاينة تصور تقريبي للرسم المتجهي المدقّق. تصدر ملفات الإنتاج فقط بعد اعتماد الورشة.",
