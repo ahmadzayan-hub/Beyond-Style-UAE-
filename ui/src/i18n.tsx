@@ -150,6 +150,11 @@ const STRINGS: Record<string, { en: string; ar: string }> = {
     ar: "الاقتراحات من قاموس أسماء منسق (أو تقريب حرفي مُعلَّم) — وليست من نموذج صور أبدًا. النص العربي المؤكد يُدقق حرفًا حرفًا.",
   },
   preview_only: { en: "preview", ar: "معاينة" },
+  generating: { en: "Shaping & verifying…", ar: "جارٍ التشكيل والتدقيق…" },
+  live_error: {
+    en: "Could not generate — check the inscription (max 40 characters) and try again.",
+    ar: "تعذر التوليد — تحقق من النقش (٤٠ حرفًا كحد أقصى) وأعد المحاولة.",
+  },
   live_note: {
     en: "Generated live by the deterministic pipeline: real HarfBuzz shaping, structural spelling verification, geometry validation and pricing. Downloads are customer previews — manufacturing files (DXF, technical sheet) are released only through the workshop approval workflow.",
     ar: "مولّد مباشرة بالخط الحتمي: تشكيل هارفبز حقيقي، تدقيق إملائي بنيوي، تحقق هندسي وتسعير. التنزيلات معاينات للعميل — ملفات التصنيع (DXF والملف الفني) تصدر فقط عبر مسار اعتماد الورشة.",

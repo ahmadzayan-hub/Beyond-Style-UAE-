@@ -177,9 +177,9 @@ export default function App() {
     <TokenGate>
     {DEMO && (
       <div className="bg-amber-flag text-white text-xs text-center py-1.5 px-3">
-        Demo preview with sample data — actions are disabled. The real system runs
-        locally with <code className="font-mono">make dev</code> (kernel, policies,
-        ledger and asset library are local-first by design).
+        Hosted preview — the Design Studio runs the real deterministic pipeline
+        live (type any name). Kernel workflows (approvals, custody, ledger) run
+        locally with <code className="font-mono">make dev</code>.
       </div>
     )}
     <div className="min-h-screen flex">

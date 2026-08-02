@@ -80,6 +80,7 @@ export default function DesignStudio() {
   >([]);
   const [live, setLive] = useState<LivePreview | null>(null);
   const [liveBusy, setLiveBusy] = useState(false);
+  const [liveError, setLiveError] = useState("");
 
   const hasLatin = /[A-Za-z]/.test(inscription);
 
@@ -88,16 +89,22 @@ export default function DesignStudio() {
   // typed here produces genuine verified variants, validation and prices.
   const runLive = async () => {
     setLiveBusy(true);
+    setLiveError("");
     try {
       const res = await fetch(`/api/studio/preview?text=${encodeURIComponent(inscription)}`);
       if (!res.ok) throw new Error(await res.text());
-      setLive(await res.json());
+      const data = await res.json();
+      setLive(data);
+      setTimeout(() =>
+        document.getElementById("live-results")?.scrollIntoView({ behavior: "smooth" }), 80);
     } catch {
       setLive(null);
+      setLiveError(t("live_error"));
     } finally {
       setLiveBusy(false);
     }
   };
+
 
   const suggestArabic = async () => {
     let result: ReturnType<typeof demoTransliterate>;
@@ -170,6 +177,12 @@ export default function DesignStudio() {
     onSuccess: invalidate,
   });
 
+  const submit = () => {
+    if (!inscription.trim() || create.isPending || liveBusy) return;
+    if (DEMO) runLive();
+    else create.mutate();
+  };
+
   const p = detail.data;
 
   return (
@@ -192,6 +205,7 @@ export default function DesignStudio() {
             placeholder="زهران / Zahran"
             value={inscription}
             onChange={(e) => setInscription(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submit()}
           />
           <select
             className="border border-stone-300 rounded px-2 py-2 text-sm"
@@ -207,11 +221,12 @@ export default function DesignStudio() {
           <button
             className="btn-primary"
             disabled={!inscription.trim() || create.isPending || liveBusy}
-            onClick={() => (DEMO ? runLive() : create.mutate())}
+            onClick={submit}
           >
             <ShieldCheck size={14} className="inline me-1" />
-            {liveBusy ? "…" : t("verify_spelling")}
+            {liveBusy ? t("generating") : t("verify_spelling")}
           </button>
+          {liveError && <span className="text-xs text-deny">{liveError}</span>}
         </div>
         {hasLatin && (
           <div className="space-y-2">
@@ -247,7 +262,7 @@ export default function DesignStudio() {
       </section>
 
       {live && (
-        <section className="card p-4 space-y-3">
+        <section id="live-results" className="card p-4 space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <span dir="rtl" className="font-display text-2xl">{live.normalized}</span>
             <div className="flex items-center gap-2 flex-wrap">

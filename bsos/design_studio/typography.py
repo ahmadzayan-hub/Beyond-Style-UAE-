@@ -117,12 +117,18 @@ class TypographyEngine:
         self.upem = self._face.upem
 
     # ------------------------------------------------------------------
+    #: Tashkeel and superscript alef. Per the studio workflow, diacritics
+    #: are optional decorative layers — the verified letter skeleton never
+    #: depends on them, so they are stripped before shaping.
+    _TASHKEEL = set(range(0x064B, 0x0653)) | {0x0670}
+
     def normalize(self, text: str) -> str:
         # NFC canonical composition; strip zero-width controls that could
-        # smuggle a different rendering than the audited sequence.
+        # smuggle a different rendering than the audited sequence, and
+        # tashkeel (see _TASHKEEL).
         cleaned = "".join(
             ch for ch in unicodedata.normalize("NFC", text)
-            if ch not in ("​", "‎", "‏", "﻿")
+            if ch not in ("​", "‎", "‏", "﻿") and ord(ch) not in self._TASHKEEL
         )
         return cleaned.strip()
 
@@ -133,6 +139,16 @@ class TypographyEngine:
     # ------------------------------------------------------------------
     def shape(self, text: str) -> ShapingResult:
         normalized = self.normalize(text)
+        if not normalized:
+            result = ShapingResult(text=text, normalized_text="", direction="",
+                                   font_id=self.font_id, upem=self.upem,
+                                   glyphs=[], total_advance=0.0)
+            result.verification = {
+                "passed": False, "status": "human_review",
+                "letter_checks": [], "issues": ["inscription is empty"],
+                "engine": "harfbuzz+fonttools (deterministic)", "font": self.font_id,
+            }
+            return result
         buf = hb.Buffer()
         buf.add_str(normalized)
         buf.guess_segment_properties()

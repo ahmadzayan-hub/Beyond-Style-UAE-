@@ -65,6 +65,26 @@ def test_zero_width_characters_are_stripped():
     assert engine.normalize("زهر​ان") == ZAHRAN
 
 
+def test_diacritics_strip_to_verified_skeleton():
+    """Customers type harakat; the verified skeleton must not depend on them."""
+    from bsos.design_studio.typography import engine_for
+
+    engine = engine_for("Amiri-Regular")
+    shaped = engine.shape("زَهْرَان")
+    assert shaped.normalized_text == ZAHRAN
+    assert shaped.verified
+
+
+def test_empty_inscription_fails_closed_without_crashing():
+    from bsos.design_studio.typography import engine_for
+
+    engine = engine_for("Amiri-Regular")
+    for text in ("", "   ", "​"):
+        shaped = engine.shape(text)
+        assert not shaped.verified
+        assert shaped.verification["status"] == "human_review"
+
+
 # ------------------------------------------------- composition/validation ----
 
 def test_three_variants_all_spelling_verified_and_mfg_variant_passes():

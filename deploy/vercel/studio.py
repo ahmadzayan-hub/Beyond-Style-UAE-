@@ -68,6 +68,8 @@ def _pipeline(text: str):
 
 @app.get("/api/studio/preview")
 def preview(text: str = Query(..., min_length=1, max_length=MAX_LEN)):
+    if not text.strip():
+        raise HTTPException(422, "inscription is empty")
     result, _ = _pipeline(text)
     result["status"] = (
         "human_review" if not result["verification"].get("passed")
