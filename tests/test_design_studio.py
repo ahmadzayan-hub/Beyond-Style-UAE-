@@ -104,6 +104,21 @@ def test_three_variants_all_spelling_verified_and_mfg_variant_passes():
     assert report.passed, [c for c in report.checks if not c["ok"]]
 
 
+def test_descender_names_center_on_real_ink_bounds():
+    """Names with deep descenders (نور) must sit centred inside the safe
+    circle on every face size — the fitter measures actual ink bounds,
+    not upem fractions."""
+    from bsos.design_studio.composition import compose_variant, frame_for
+    from bsos.design_studio.validation import validate_composition
+
+    for name in ("نور", "ريم", "زهران"):
+        for item in ("cufflink", "pendant", "coin", "brooch", "corporate_gift"):
+            comp = compose_variant("manufacturing_optimized", name, frame_for(item))
+            report = validate_composition(comp)
+            assert report.passed, (name, item,
+                                   [c for c in report.checks if not c["ok"]])
+
+
 def test_item_frame_presets_change_real_outcomes():
     """Bigger faces give more room; a small ring face may honestly fail."""
     from bsos.design_studio.composition import compose_variant, frame_for

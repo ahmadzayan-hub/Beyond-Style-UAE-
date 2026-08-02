@@ -157,18 +157,34 @@ def compose_variant(variant_id: str, inscription: str,
         engine, shaped, spec["tracking"], spec["arc_degrees"]
     )
 
-    # Fit within the safe circle: text width maps to target_fill × safe Ø.
+    # Fit and centre on the ACTUAL ink bounds — advance width and upem
+    # fractions misplace words with deep descenders (e.g. نور).
+    import math
+
+    from bsos.design_studio.validation import _flatten_path
+
+    rings_u = [r for r in _flatten_path(path_units, curve_steps=4) if len(r) >= 3]
+    xs = [x for ring in rings_u for x, _ in ring]
+    ys = [y for ring in rings_u for _, y in ring]
+    minx_u, maxx_u = (min(xs), max(xs)) if xs else (0.0, max(width_u, 1))
+    miny_u, maxy_u = (min(ys), max(ys)) if ys else (0.0, max(height_u, 1))
+    real_w_u = max(maxx_u - minx_u, 1)
+    real_h_u = max(maxy_u - miny_u, 1)
+
     usable = frame["safe_diameter_mm"]
-    scale = (usable * spec["target_fill"]) / max(width_u, 1)
-    # cap by height too
-    scale = min(scale, (usable * 0.55) / max(height_u * 0.7, 1))
-    text_w = width_u * scale
-    text_h = height_u * 0.7 * scale
+    scale = (usable * spec["target_fill"]) / real_w_u
+    scale = min(scale, (usable * 0.62) / real_h_u)
+    # circle-fit cap: the ink bounding-box corner must stay inside the safe
+    # circle; the margin absorbs stroke reinforcement growth.
+    half_diag_u = math.hypot(real_w_u / 2, real_h_u / 2)
+    scale = min(scale, (usable / 2 - 0.5) / half_diag_u)
+    text_w = real_w_u * scale
+    text_h = real_h_u * scale
 
     face = frame["face_diameter_mm"]
     cx = cy = face / 2
-    tx = cx - text_w / 2
-    ty = cy - text_h / 2
+    tx = cx - (minx_u * scale) - text_w / 2
+    ty = cy - (miny_u * scale) - text_h / 2
 
     path_mm = (
         f'<g transform="translate({tx:.3f},{ty:.3f}) scale({scale:.6f})">'
@@ -197,6 +213,7 @@ def compose_variant(variant_id: str, inscription: str,
         legibility=round(legibility, 2), feasibility_hint=round(feasibility, 2),
         verification=shaped.verification,
         meta={
+            "placement": {"tx": round(tx, 4), "ty": round(ty, 4)},
             "label_en": spec["label_en"], "label_ar": spec["label_ar"],
             "expert_review_recommended": spec["expert_review_recommended"],
             "estimated_stroke_mm": round(est_stroke_mm, 3),

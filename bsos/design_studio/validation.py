@@ -115,8 +115,12 @@ def rings_mm(comp) -> list[list[tuple[float, float]]]:
     if reinforced:
         return [[(x, y) for x, y in ring] for ring in reinforced]
     face = comp.frame["face_diameter_mm"]
-    tx = face / 2 - comp.text_width_mm / 2
-    ty = face / 2 - comp.text_height_mm / 2
+    placement = comp.meta.get("placement")
+    if placement:
+        tx, ty = placement["tx"], placement["ty"]
+    else:
+        tx = face / 2 - comp.text_width_mm / 2
+        ty = face / 2 - comp.text_height_mm / 2
     s = comp.scale_mm_per_unit
     return [
         [(x * s + tx, y * s + ty) for x, y in ring]
