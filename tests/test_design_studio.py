@@ -104,6 +104,30 @@ def test_three_variants_all_spelling_verified_and_mfg_variant_passes():
     assert report.passed, [c for c in report.checks if not c["ok"]]
 
 
+def test_item_frame_presets_change_real_outcomes():
+    """Bigger faces give more room; a small ring face may honestly fail."""
+    from bsos.design_studio.composition import compose_variant, frame_for
+    from bsos.design_studio.validation import validate_composition
+
+    assert frame_for("coin")["face_diameter_mm"] > frame_for("ring")["face_diameter_mm"]
+    coin = compose_variant("manufacturing_optimized", ZAHRAN, frame_for("coin"))
+    assert validate_composition(coin).passed
+    # unknown item type falls back to workshop defaults
+    assert frame_for("unknown") == frame_for("cufflink") or \
+        frame_for("unknown")["face_diameter_mm"] == 20.0
+
+
+def test_verification_issues_are_bilingual():
+    from bsos.design_studio.typography import engine_for
+
+    engine = engine_for("Amiri-Regular")
+    shaped = engine.shape("زهر一")
+    assert shaped.verification["issues"]
+    assert len(shaped.verification["issues_ar"]) == len(shaped.verification["issues"])
+    assert all(any("؀" <= ch <= "ۿ" for ch in msg)
+               for msg in shaped.verification["issues_ar"])
+
+
 def test_validation_is_real_geometry_not_labels():
     """Shrinking the workshop rules must actually change the verdict."""
     from bsos.design_studio.composition import compose_variant

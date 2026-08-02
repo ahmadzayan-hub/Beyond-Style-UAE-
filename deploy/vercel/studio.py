@@ -29,18 +29,38 @@ MAX_LEN = 40
 VARIANTS = ("luxury_diwani_jali", "balanced_diwani", "manufacturing_optimized")
 
 
-def _pipeline(text: str):
-    from bsos.design_studio.composition import compose_all
-    from bsos.design_studio.pricing import estimate
+import re
+
+_ARABIC_RE = re.compile(r"[؀-ۿ]")
+_LATIN_RE = re.compile(r"[A-Za-z]")
+
+
+def _mixed_parts(text: str) -> tuple[str, str] | None:
+    """If the inscription mixes Arabic and Latin, return the two parts."""
+    if _ARABIC_RE.search(text) and _LATIN_RE.search(text):
+        arabic = " ".join(w for w in text.split() if _ARABIC_RE.search(w))
+        latin = " ".join(w for w in text.split() if _LATIN_RE.search(w)
+                         and not _ARABIC_RE.search(w))
+        return arabic, latin
+    return None
+
+
+def _pipeline(text: str, item: str = "cufflink"):
+    from bsos.design_studio.composition import compose_all, frame_for
+    from bsos.design_studio.pricing import PRICING_RULES, estimate
     from bsos.design_studio.typography import engine_for
     from bsos.design_studio.validation import validate_composition
 
+    if item not in PRICING_RULES["base_by_item"]:
+        item = "cufflink"
     engine = engine_for("Amiri-Regular")
     shaped = engine.shape(text)
     letters = engine.letter_sequence(shaped.normalized_text)
     result = {
         "input": text,
         "normalized": shaped.normalized_text,
+        "item": item,
+        "frame": frame_for(item),
         "letter_sequence": letters,
         "verification": shaped.verification,
         "variants": [],
@@ -48,11 +68,11 @@ def _pipeline(text: str):
     if not shaped.verified:
         return result, None
 
-    comps = compose_all(shaped.normalized_text)
+    comps = compose_all(shaped.normalized_text, frame_for(item))
     letter_count = len([c for c in letters if c["char"].strip()])
     for comp in comps:
         report = validate_composition(comp)
-        price = estimate("cufflink", comp.variant_id, letter_count)
+        price = estimate(item, comp.variant_id, letter_count)
         result["variants"].append({
             "variant_id": comp.variant_id,
             "svg": comp.svg,
@@ -67,10 +87,23 @@ def _pipeline(text: str):
 
 
 @app.get("/api/studio/preview")
-def preview(text: str = Query(..., min_length=1, max_length=MAX_LEN)):
+def preview(text: str = Query(..., min_length=1, max_length=MAX_LEN),
+            item: str = Query("cufflink")):
     if not text.strip():
         raise HTTPException(422, "inscription is empty")
-    result, _ = _pipeline(text)
+    mixed = _mixed_parts(text)
+    if mixed:
+        return {
+            "input": text, "status": "mixed_script",
+            "arabic_part": mixed[0], "latin_part": mixed[1],
+            "verification": {"passed": False, "issues": [
+                "inscription mixes Arabic and Latin — engrave one script per side, "
+                "or pick one below"],
+                "issues_ar": ["النقش يخلط العربية واللاتينية — يُنقش كل نص على وجه، "
+                              "أو اختر أحدهما"]},
+            "letter_sequence": [], "variants": [],
+        }
+    result, _ = _pipeline(text, item)
     result["status"] = (
         "human_review" if not result["verification"].get("passed")
         else "manufacturing_checked"
@@ -103,6 +136,7 @@ def transliterate(text: str = Query(..., min_length=1, max_length=MAX_LEN)):
 @app.get("/api/studio/export")
 def export(text: str = Query(..., min_length=1, max_length=MAX_LEN),
            variant: str = Query("manufacturing_optimized"),
+           item: str = Query("cufflink"),
            fmt: str = Query("png", alias="format")):
     if variant not in VARIANTS:
         raise HTTPException(422, f"unknown variant '{variant}'")
@@ -113,7 +147,7 @@ def export(text: str = Query(..., min_length=1, max_length=MAX_LEN),
     if fmt not in ("png", "pair", "svg", "pdf"):
         raise HTTPException(422, f"unsupported format '{fmt}'")
 
-    result, comps = _pipeline(text)
+    result, comps = _pipeline(text, item)
     if comps is None:
         raise HTTPException(409, {"reason": "spelling did not verify",
                                   "issues": result["verification"].get("issues", [])})

@@ -151,6 +151,7 @@ const STRINGS: Record<string, { en: string; ar: string }> = {
   },
   preview_only: { en: "preview", ar: "معاينة" },
   generating: { en: "Shaping & verifying…", ar: "جارٍ التشكيل والتدقيق…" },
+  mixed_pick: { en: "Pick one script:", ar: "اختر أحد النصين:" },
   live_error: {
     en: "Could not generate — check the inscription (max 40 characters) and try again.",
     ar: "تعذر التوليد — تحقق من النقش (٤٠ حرفًا كحد أقصى) وأعد المحاولة.",

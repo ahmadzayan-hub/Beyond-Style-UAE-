@@ -3,11 +3,11 @@ import {
   BadgeCheck, CheckCircle2, Download, FileWarning, Languages, MonitorPlay, PenTool,
   Ruler, ShieldCheck, Type,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, authedUrl, DesignProjectDetail, DesignProjectSummary } from "../api";
 import { DEMO, demoTransliterate } from "../demo";
-import { useT } from "../i18n";
+import { useLang, useT } from "../i18n";
 
 /**
  * The customer-visible trust ladder. Each rung is earned in the kernel, never
@@ -26,8 +26,10 @@ interface LivePreview {
   input: string;
   normalized: string;
   status: string;
+  arabic_part?: string;
+  latin_part?: string;
   letter_sequence: { char: string; codepoint: string; name: string }[];
-  verification: { passed: boolean; issues: string[] };
+  verification: { passed: boolean; issues: string[]; issues_ar?: string[] };
   variants: {
     variant_id: string;
     svg: string;
@@ -71,6 +73,7 @@ function StatusLadder({ status }: { status: string }) {
 
 export default function DesignStudio() {
   const t = useT();
+  const { lang } = useLang();
   const queryClient = useQueryClient();
   const [inscription, setInscription] = useState("");
   const [itemType, setItemType] = useState("cufflink");
@@ -84,14 +87,22 @@ export default function DesignStudio() {
 
   const hasLatin = /[A-Za-z]/.test(inscription);
 
+  // Warm the serverless pipeline so the first generation feels instant.
+  useEffect(() => {
+    if (DEMO) fetch("/api/studio/health").catch(() => {});
+  }, []);
+
   // Hosted preview: the static demo cannot reach the kernel API, but the
   // REAL deterministic pipeline runs serverless at /api/studio/* — any name
   // typed here produces genuine verified variants, validation and prices.
-  const runLive = async () => {
+  const runLive = async (textOverride?: string) => {
+    const text = textOverride ?? inscription;
+    if (textOverride) setInscription(textOverride);
     setLiveBusy(true);
     setLiveError("");
     try {
-      const res = await fetch(`/api/studio/preview?text=${encodeURIComponent(inscription)}`);
+      const res = await fetch(
+        `/api/studio/preview?text=${encodeURIComponent(text)}&item=${itemType}`);
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setLive(data);
@@ -264,11 +275,11 @@ export default function DesignStudio() {
       {live && (
         <section id="live-results" className="card p-4 space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <span dir="rtl" className="font-display text-2xl">{live.normalized}</span>
+            <span dir="rtl" className="font-display text-2xl">{live.normalized || live.input}</span>
             <div className="flex items-center gap-2 flex-wrap">
-              <StatusLadder status={live.status} />
+              <StatusLadder status={live.status === "mixed_script" ? "human_review" : live.status} />
               {live.variants.length > 0 && (
-                <Link to={`/reveal/live?text=${encodeURIComponent(live.normalized)}`}
+                <Link to={`/reveal/live?text=${encodeURIComponent(live.normalized)}&item=${itemType}`}
                       className="btn-primary !text-xs !py-1.5">
                   <MonitorPlay size={13} className="inline me-1" />
                   {t("present_customer")}
@@ -276,6 +287,18 @@ export default function DesignStudio() {
               )}
             </div>
           </div>
+          {live.status === "mixed_script" && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-stone-500">{t("mixed_pick")}</span>
+              {[live.arabic_part, live.latin_part].filter(Boolean).map((part) => (
+                <button key={part} dir="auto"
+                        className="px-3 py-1.5 rounded border border-stone-300 hover:border-gold-deep text-base"
+                        onClick={() => runLive(part!)}>
+                  {part}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex flex-wrap gap-1.5">
             {live.letter_sequence.map((l, i) => (
               <span key={i} className="chip font-mono" title={l.name}>
@@ -285,7 +308,10 @@ export default function DesignStudio() {
           </div>
           {live.verification.issues?.length > 0 && (
             <ul className="text-xs text-deny list-disc ms-4">
-              {live.verification.issues.map((iss, i) => <li key={i}>{iss}</li>)}
+              {(lang === "ar" && live.verification.issues_ar?.length
+                ? live.verification.issues_ar
+                : live.verification.issues
+              ).map((iss, i) => <li key={i}>{iss}</li>)}
             </ul>
           )}
           {live.variants.length > 0 && (
@@ -315,7 +341,7 @@ export default function DesignStudio() {
                   <div className="flex flex-wrap gap-1.5">
                     {(["pair", "png", "svg", "pdf"] as const).map((fmt) => (
                       <a key={fmt} className="chip hover:border-gold-deep"
-                         href={`/api/studio/export?text=${encodeURIComponent(live.normalized)}&variant=${v.variant_id}&format=${fmt}`}
+                         href={`/api/studio/export?text=${encodeURIComponent(live.normalized)}&variant=${v.variant_id}&item=${itemType}&format=${fmt}`}
                          target="_blank" rel="noreferrer">
                         <Download size={10} className="inline me-1" />{fmt}
                       </a>

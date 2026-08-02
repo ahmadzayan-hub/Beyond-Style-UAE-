@@ -28,6 +28,22 @@ DEFAULT_FRAME = {
     "min_gap_mm": 0.45,      # negative feature
 }
 
+# Circular face presets per item type (stroke/gap rules stay the workshop
+# defaults). Bracelet is modelled as a round charm plate for now.
+FRAME_PRESETS: dict[str, dict[str, float]] = {
+    "cufflink": {"face_diameter_mm": 20.0, "safe_diameter_mm": 17.0},
+    "pendant": {"face_diameter_mm": 24.0, "safe_diameter_mm": 20.5},
+    "ring": {"face_diameter_mm": 14.0, "safe_diameter_mm": 11.5},
+    "brooch": {"face_diameter_mm": 30.0, "safe_diameter_mm": 26.0},
+    "coin": {"face_diameter_mm": 32.0, "safe_diameter_mm": 28.0},
+    "bracelet": {"face_diameter_mm": 22.0, "safe_diameter_mm": 19.0},
+    "corporate_gift": {"face_diameter_mm": 40.0, "safe_diameter_mm": 35.0},
+}
+
+
+def frame_for(item_type: str) -> dict[str, float]:
+    return {**DEFAULT_FRAME, **FRAME_PRESETS.get(item_type, {})}
+
 VARIANT_SPECS = {
     "luxury_diwani_jali": {
         "label_en": "Luxury Diwani Jali (inspired)",

@@ -32,10 +32,16 @@ const METAL_STOPS: Record<string, [string, string, string]> = {
 function JewelPreview({ svgText, material, finish, size }: {
   svgText: string; material: string; finish: string; size: number;
 }) {
-  const art = useMemo(() => {
+  const { art, face } = useMemo(() => {
     const inner = svgText.slice(svgText.indexOf(">") + 1, svgText.lastIndexOf("</svg>"));
-    return inner.replace(/<circle[^>]*\/>/g, "");
+    // face diameter comes from the artwork's own mm viewBox (item-dependent)
+    const vb = svgText.match(/viewBox="0 0 ([\d.]+)/);
+    return {
+      art: inner.replace(/<circle[^>]*\/>/g, ""),
+      face: vb ? parseFloat(vb[1]) : 20,
+    };
   }, [svgText]);
+  const c = face / 2;
   const [hi, mid, lo] = METAL_STOPS[material] ?? METAL_STOPS.silver_925;
   const enamel = finish === "black_enamel" ? "#131315"
     : finish === "white_enamel" ? "#f5f2ec" : null;
@@ -44,7 +50,8 @@ function JewelPreview({ svgText, material, finish, size }: {
   const artFill = enamel ? `url(#${gid})` : finish === "brushed" ? "#3a3b40" : "#26262b";
   const faceFill = enamel ?? mid;
   return (
-    <svg viewBox="0 0 20 20" width={size} height={size} style={{ transition: "all .4s" }}>
+    <svg viewBox={`0 0 ${face} ${face}`} width={size} height={size}
+         style={{ transition: "all .4s" }}>
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor={hi} />
@@ -57,12 +64,16 @@ function JewelPreview({ svgText, material, finish, size }: {
         </radialGradient>
       </defs>
       <style>{`.reveal-art path { fill: ${artFill}; transition: fill .4s; }`}</style>
-      <circle cx="10" cy="10" r="9.8" fill={`url(#${gid})`} />
-      <circle cx="10" cy="10" r="8.7" fill={`url(#face-${gid})`} />
-      {enamel === "#f5f2ec" && <circle cx="10" cy="10" r="8.7" fill="none" stroke="#ddd8cd" strokeWidth="0.08" />}
+      <circle cx={c} cy={c} r={c * 0.98} fill={`url(#${gid})`} />
+      <circle cx={c} cy={c} r={c * 0.87} fill={`url(#face-${gid})`} />
+      {enamel === "#f5f2ec" && (
+        <circle cx={c} cy={c} r={c * 0.87} fill="none" stroke="#ddd8cd"
+                strokeWidth={face * 0.004} />
+      )}
       <g className="reveal-art" dangerouslySetInnerHTML={{ __html: art }} />
-      <ellipse cx="6.8" cy="5.6" rx="4.6" ry="2.2" fill="#ffffff" opacity={enamel ? 0.08 : 0.28}
-               transform="rotate(-24 6.8 5.6)" />
+      <ellipse cx={c * 0.68} cy={c * 0.56} rx={c * 0.46} ry={c * 0.22} fill="#ffffff"
+               opacity={enamel ? 0.08 : 0.28}
+               transform={`rotate(-24 ${c * 0.68} ${c * 0.56})`} />
     </svg>
   );
 }
@@ -75,6 +86,7 @@ export default function Reveal() {
   // /reveal/live?text=… presents a LIVE composition straight from the
   // deterministic serverless pipeline — no stored project needed.
   const liveText = id === "live" ? (search.get("text") ?? "") : "";
+  const liveItem = search.get("item") ?? "cufflink";
   const projectId = Number(id === "live" ? 0 : (id ?? 1));
 
   const project = useQuery({
@@ -83,9 +95,10 @@ export default function Reveal() {
     enabled: !liveText,
   });
   const liveQuery = useQuery({
-    queryKey: ["studio-live", liveText],
+    queryKey: ["studio-live", liveText, liveItem],
     queryFn: async () => {
-      const res = await fetch(`/api/studio/preview?text=${encodeURIComponent(liveText)}`);
+      const res = await fetch(
+        `/api/studio/preview?text=${encodeURIComponent(liveText)}&item=${liveItem}`);
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
@@ -108,7 +121,7 @@ export default function Reveal() {
         id: 0,
         inscription: liveQuery.data.normalized,
         normalized_inscription: liveQuery.data.normalized,
-        item_type: "cufflink",
+        item_type: liveQuery.data.item ?? liveItem,
         status: liveQuery.data.status,
         selected_variant: (liveQuery.data.variants ?? []).find(
           (v: { validation_passed: boolean }) => v.validation_passed)?.variant_id ?? "",
@@ -140,6 +153,7 @@ export default function Reveal() {
   }, [p]);
 
   useEffect(() => {
+    fetch("/api/studio/health").catch(() => {});  // warm the live pipeline
     const t1 = setTimeout(() => setStage(1), 1600);
     const t2 = setTimeout(() => setStage(2), 3200);
     return () => { clearTimeout(t1); clearTimeout(t2); };

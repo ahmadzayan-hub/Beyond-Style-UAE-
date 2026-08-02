@@ -146,6 +146,7 @@ class TypographyEngine:
             result.verification = {
                 "passed": False, "status": "human_review",
                 "letter_checks": [], "issues": ["inscription is empty"],
+                "issues_ar": ["النقش فارغ"],
                 "engine": "harfbuzz+fonttools (deterministic)", "font": self.font_id,
             }
             return result
@@ -181,16 +182,23 @@ class TypographyEngine:
         """Structural spelling verification. Fail-closed."""
         text = result.normalized_text
         issues: list[str] = []
+        issues_ar: list[str] = []
         checks: list[dict[str, Any]] = []
+
+        def issue(en: str, ar: str) -> None:
+            issues.append(en)
+            issues_ar.append(ar)
 
         is_arabic = any(ord(c) in ARABIC_RANGE for c in text)
         if is_arabic and result.direction not in ("rtl", "DirectionRTL", "4"):
-            issues.append(f"expected RTL direction for Arabic text, got {result.direction}")
+            issue(f"expected RTL direction for Arabic text, got {result.direction}",
+                  "اتجاه النص غير صحيح — يبدو أن النص يخلط العربية مع حروف لاتينية")
 
         # .notdef anywhere = missing glyph coverage.
         for g in result.glyphs:
             if g.glyph_name in (".notdef", "notdef"):
-                issues.append(f"font lacks a glyph for cluster {g.cluster}")
+                issue(f"font lacks a glyph for cluster {g.cluster}",
+                      f"الخط لا يحتوي على محرف للحرف في الموضع {g.cluster + 1}")
 
         clusters_covered = {g.cluster for g in result.glyphs}
         by_cluster: dict[int, list[str]] = {}
@@ -213,9 +221,8 @@ class TypographyEngine:
                     entry["ok"] = True
                 else:
                     entry["ok"] = False
-                    issues.append(
-                        f"character {idx} ({letter_name(ch)}) produced no glyph"
-                    )
+                    issue(f"character {idx} ({letter_name(ch)}) produced no glyph",
+                          f"الحرف رقم {idx + 1} ({ch}) لم ينتج أي محرف في الخط")
                 checks.append(entry)
                 continue
 
@@ -234,10 +241,9 @@ class TypographyEngine:
                     for n in glyph_names
                 )
                 if not entry["ok"]:
-                    issues.append(
-                        f"character {idx} ({letter_name(ch)}) rendered as "
-                        f"{glyph_names}, which does not match the expected letter"
-                    )
+                    issue(f"character {idx} ({letter_name(ch)}) rendered as "
+                          f"{glyph_names}, which does not match the expected letter",
+                          f"الحرف رقم {idx + 1} ({ch}) ظهر بمحرف لا يطابق الحرف المتوقع")
             checks.append(entry)
 
         return {
@@ -246,6 +252,7 @@ class TypographyEngine:
             "direction_ok": not any("RTL" in i for i in issues),
             "letter_checks": checks,
             "issues": issues,
+            "issues_ar": issues_ar,
             "engine": "harfbuzz+fonttools (deterministic)",
             "font": self.font_id,
         }
