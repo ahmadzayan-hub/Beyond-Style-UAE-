@@ -133,19 +133,23 @@ def transliterate(text: str = Query(..., min_length=1, max_length=MAX_LEN)):
     return result
 
 
+PREVIEW_MARK = "PREVIEW - PENDING WORKSHOP APPROVAL"
+FORMATS = ("png", "pair", "svg", "svg_mirrored", "pdf",
+           "dxf", "vector_pdf", "technical_pdf", "zip")
+
+
 @app.get("/api/studio/export")
 def export(text: str = Query(..., min_length=1, max_length=MAX_LEN),
            variant: str = Query("manufacturing_optimized"),
            item: str = Query("cufflink"),
            fmt: str = Query("png", alias="format")):
+    """Every output is extractable. Vector/technical files carry an explicit
+    PREVIEW marking until the workshop-approval workflow signs them off -
+    they are deterministic verified vectors, never AI imagery."""
     if variant not in VARIANTS:
         raise HTTPException(422, f"unknown variant '{variant}'")
-    if fmt in ("dxf", "technical"):
-        raise HTTPException(403, "Manufacturing files require workshop approval "
-                                 "in the full system; this hosted preview serves "
-                                 "customer previews only.")
-    if fmt not in ("png", "pair", "svg", "pdf"):
-        raise HTTPException(422, f"unsupported format '{fmt}'")
+    if fmt not in FORMATS:
+        raise HTTPException(422, f"unsupported format '{fmt}' - use one of {FORMATS}")
 
     result, comps = _pipeline(text, item)
     if comps is None:
@@ -153,47 +157,86 @@ def export(text: str = Query(..., min_length=1, max_length=MAX_LEN),
                                   "issues": result["verification"].get("issues", [])})
     comp = next(c for c in comps if c.variant_id == variant)
 
-    from bsos.design_studio.exports import render_cufflink_pair, render_png
+    from bsos.design_studio.exports import (
+        export_dxf, export_package, export_svg, export_technical_pdf,
+        export_vector_pdf, render_cufflink_pair, render_png,
+    )
+    from bsos.design_studio.validation import validate_composition
+
+    def _resp(data: bytes, media: str, filename: str) -> Response:
+        return Response(data, media_type=media, headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'})
 
     if fmt == "svg":
+        face = comp.frame["face_diameter_mm"]
         svg = comp.svg.replace(
             "</svg>",
-            '<text x="10" y="19.4" font-size="0.8" text-anchor="middle" '
-            'fill="#999">PREVIEW — NOT A PRODUCTION FILE</text></svg>')
-        return Response(svg, media_type="image/svg+xml", headers={
-            "Content-Disposition": f'inline; filename="{variant}.preview.svg"'})
+            f'<text x="{face/2}" y="{face - 0.6}" font-size="{face*0.04}" '
+            f'text-anchor="middle" fill="#999">{PREVIEW_MARK}</text></svg>')
+        return _resp(svg.encode(), "image/svg+xml", f"{variant}.preview.svg")
 
-    with tempfile.TemporaryDirectory() as td:
-        out = Path(td) / f"{variant}.{fmt}"
+    with tempfile.TemporaryDirectory() as td_str:
+        td = Path(td_str)
+        if fmt == "zip":
+            import io
+            import zipfile
+
+            report = validate_composition(comp)
+            export_package(comp, report.to_dict(), {"item": item},
+                           td, approval_id=PREVIEW_MARK)
+            buf = io.BytesIO()
+            with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+                for f in sorted(td.iterdir()):
+                    z.write(f, f.name)
+            return _resp(buf.getvalue(), "application/zip",
+                         f"beyond-style-{variant}-{item}.preview.zip")
+        if fmt == "svg_mirrored":
+            out = export_svg(comp, td / "m.svg", mirrored=True)
+            return _resp(out.read_bytes(), "image/svg+xml",
+                         f"{variant}.mirrored.preview.svg")
+        if fmt == "dxf":
+            out = export_dxf(comp, td / "a.dxf", note=PREVIEW_MARK)
+            return _resp(out.read_bytes(), "application/dxf",
+                         f"{variant}.preview.dxf")
+        if fmt == "vector_pdf":
+            out = export_vector_pdf(comp, td / "v.pdf")
+            return _resp(out.read_bytes(), "application/pdf",
+                         f"{variant}.vector.preview.pdf")
+        if fmt == "technical_pdf":
+            report = validate_composition(comp)
+            out = export_technical_pdf(comp, report.to_dict(), {"item": item},
+                                       td / "t.pdf", approval_id=PREVIEW_MARK)
+            return _resp(out.read_bytes(), "application/pdf",
+                         f"{variant}.technical.preview.pdf")
         if fmt == "pair":
+            out = td / "pair.png"
             render_cufflink_pair(comp, out)
-            data, media = out.read_bytes(), "image/png"
-        elif fmt == "png":
+            return _resp(out.read_bytes(), "image/png", f"{variant}.pair.png")
+        if fmt == "png":
+            out = td / "macro.png"
             render_png(comp, out, style="enamel")
-            data, media = out.read_bytes(), "image/png"
-        else:  # pdf — customer approval sheet, watermarked PREVIEW
-            from fpdf import FPDF
-            png = Path(td) / "art.png"
-            render_cufflink_pair(comp, png)
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Helvetica", "B", 16)
-            pdf.cell(0, 10, "Beyond Style UAE - Design Preview",
-                     new_x="LMARGIN", new_y="NEXT")
-            pdf.set_font("Helvetica", "", 10)
-            pdf.cell(0, 6, f"Variant: {variant}  |  Starting price from AED "
-                           f"{next(v['price_from_aed'] for v in result['variants'] if v['variant_id'] == variant)}",
-                     new_x="LMARGIN", new_y="NEXT")
-            pdf.image(str(png), x=20, y=35, w=170)
-            pdf.set_y(150)
-            pdf.set_font("Helvetica", "I", 9)
-            pdf.multi_cell(0, 5, "PREVIEW ONLY - not a production file. Spelling "
-                                 "verified structurally by the deterministic "
-                                 "typography engine. Final price confirmed on "
-                                 "WhatsApp +971 55 561 5509.")
-            data, media = bytes(pdf.output()), "application/pdf"
-        return Response(data, media_type=media, headers={
-            "Content-Disposition": f'inline; filename="{variant}.{fmt if fmt != "pair" else "png"}"'})
+            return _resp(out.read_bytes(), "image/png", f"{variant}.macro.png")
+        # pdf - customer approval sheet
+        from fpdf import FPDF
+        png = td / "art.png"
+        render_cufflink_pair(comp, png)
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Helvetica", "B", 16)
+        pdf.cell(0, 10, "Beyond Style UAE - Design Preview",
+                 new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("Helvetica", "", 10)
+        pdf.cell(0, 6, f"Variant: {variant}  |  Item: {item}  |  Starting price from AED "
+                       f"{next(v['price_from_aed'] for v in result['variants'] if v['variant_id'] == variant)}",
+                 new_x="LMARGIN", new_y="NEXT")
+        pdf.image(str(png), x=20, y=35, w=170)
+        pdf.set_y(150)
+        pdf.set_font("Helvetica", "I", 9)
+        pdf.multi_cell(0, 5, "PREVIEW ONLY - pending workshop approval. Spelling "
+                             "verified structurally by the deterministic "
+                             "typography engine. Final price confirmed on "
+                             "WhatsApp +971 55 561 5509.")
+        return _resp(bytes(pdf.output()), "application/pdf", f"{variant}.sheet.pdf")
 
 
 @app.get("/api/studio/health")

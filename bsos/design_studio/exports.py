@@ -37,7 +37,7 @@ def export_svg(comp, out_path: Path, mirrored: bool = False) -> Path:
     return out_path
 
 
-def export_dxf(comp, out_path: Path) -> Path:
+def export_dxf(comp, out_path: Path, note: str = "") -> Path:
     """Layered DXF in millimetres: FRAME / SAFE_AREA / ENGRAVE / NOTES."""
     doc = ezdxf.new(dxfversion="R2010", setup=True)
     doc.header["$INSUNITS"] = 4  # millimetres
@@ -61,6 +61,9 @@ def export_dxf(comp, out_path: Path) -> Path:
         f"min_stroke={comp.frame['min_stroke_mm']}mm min_gap={comp.frame['min_gap_mm']}mm",
         dxfattribs={"layer": "NOTES", "height": 1.0},
     ).set_placement((0, -3))
+    if note:
+        msp.add_text(note, dxfattribs={"layer": "NOTES", "height": 1.2}
+                     ).set_placement((0, -5))
 
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)

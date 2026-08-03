@@ -338,14 +338,22 @@ export default function DesignStudio() {
                       {t("starting_price_label")}: {v.price_from_aed} AED
                     </p>
                   )}
-                  <div className="flex flex-wrap gap-1.5">
-                    {(["pair", "png", "svg", "pdf"] as const).map((fmt) => (
-                      <a key={fmt} className="chip hover:border-gold-deep"
-                         href={`/api/studio/export?text=${encodeURIComponent(live.normalized)}&variant=${v.variant_id}&item=${itemType}&format=${fmt}`}
-                         target="_blank" rel="noreferrer">
-                        <Download size={10} className="inline me-1" />{fmt}
-                      </a>
-                    ))}
+                  <div className="space-y-1.5">
+                    <a className="btn-primary !text-xs w-full flex items-center justify-center gap-1.5"
+                       href={`/api/studio/export?text=${encodeURIComponent(live.normalized)}&variant=${v.variant_id}&item=${itemType}&format=zip`}>
+                      <Download size={12} /> {t("download_all")}
+                    </a>
+                    <div className="flex flex-wrap gap-1.5">
+                      {([["pair", "PNG ×2"], ["png", "PNG macro"], ["svg", "SVG"],
+                         ["svg_mirrored", "SVG mirror"], ["dxf", "DXF"],
+                         ["vector_pdf", "PDF vector"], ["technical_pdf", "PDF tech"],
+                         ["pdf", t("sheet_pdf")]] as const).map(([fmt, label]) => (
+                        <a key={fmt} className="chip hover:border-gold-deep"
+                           href={`/api/studio/export?text=${encodeURIComponent(live.normalized)}&variant=${v.variant_id}&item=${itemType}&format=${fmt}`}>
+                          <Download size={10} className="inline me-1" />{label}
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ))}

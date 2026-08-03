@@ -152,13 +152,15 @@ const STRINGS: Record<string, { en: string; ar: string }> = {
   preview_only: { en: "preview", ar: "معاينة" },
   generating: { en: "Shaping & verifying…", ar: "جارٍ التشكيل والتدقيق…" },
   mixed_pick: { en: "Pick one script:", ar: "اختر أحد النصين:" },
+  download_all: { en: "Download all files (ZIP)", ar: "تنزيل كل الملفات (ZIP)" },
+  sheet_pdf: { en: "Customer sheet", ar: "ورقة العميل" },
   live_error: {
     en: "Could not generate — check the inscription (max 40 characters) and try again.",
     ar: "تعذر التوليد — تحقق من النقش (٤٠ حرفًا كحد أقصى) وأعد المحاولة.",
   },
   live_note: {
-    en: "Generated live by the deterministic pipeline: real HarfBuzz shaping, structural spelling verification, geometry validation and pricing. Downloads are customer previews — manufacturing files (DXF, technical sheet) are released only through the workshop approval workflow.",
-    ar: "مولّد مباشرة بالخط الحتمي: تشكيل هارفبز حقيقي، تدقيق إملائي بنيوي، تحقق هندسي وتسعير. التنزيلات معاينات للعميل — ملفات التصنيع (DXF والملف الفني) تصدر فقط عبر مسار اعتماد الورشة.",
+    en: "Generated live by the deterministic pipeline: real HarfBuzz shaping, structural spelling verification, geometry validation and pricing. All files are extractable; vector and technical files are marked PREVIEW until workshop approval in the full system.",
+    ar: "مولّد مباشرة بالخط الحتمي: تشكيل هارفبز حقيقي، تدقيق إملائي بنيوي، تحقق هندسي وتسعير. كل الملفات قابلة للاستخراج؛ وتُعلَّم ملفات المتجهات والملفات الفنية «معاينة» حتى اعتماد الورشة في النظام الكامل.",
   },
   reveal_disclaimer: {
     en: "Preview is an approximate visualization of the verified vector artwork. Production files are released only after workshop approval.",
