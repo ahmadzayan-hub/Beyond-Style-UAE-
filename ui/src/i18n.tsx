@@ -154,6 +154,14 @@ const STRINGS: Record<string, { en: string; ar: string }> = {
   mixed_pick: { en: "Pick one script:", ar: "اختر أحد النصين:" },
   download_all: { en: "Download all files (ZIP)", ar: "تنزيل كل الملفات (ZIP)" },
   final_design: { en: "Final design", ar: "التصميم النهائي" },
+  showcase_title: {
+    en: "Type a name. See it become a real piece.",
+    ar: "اكتب اسمًا، وشاهده يتحول إلى قطعة حقيقية.",
+  },
+  showcase_sub: {
+    en: "Spelling verified letter-by-letter, three calligraphic variants, live prices, and every file ready to download.",
+    ar: "إملاء مدقّق حرفًا حرفًا، ثلاث نسخ خطية، أسعار مباشرة، وكل الملفات جاهزة للتنزيل.",
+  },
   fin_black_enamel: { en: "Black enamel", ar: "مينا سوداء" },
   fin_white_enamel: { en: "White enamel", ar: "مينا بيضاء" },
   fin_mirror_polish: { en: "Mirror polish", ar: "تلميع مرآة" },

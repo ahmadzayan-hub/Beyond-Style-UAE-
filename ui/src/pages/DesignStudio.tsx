@@ -91,10 +91,25 @@ export default function DesignStudio() {
 
   const hasLatin = /[A-Za-z]/.test(inscription);
 
+  // Landing showcase: a finished sample piece cycling through materials,
+  // so the first screen opens on a final design instead of an empty form.
+  const [showcaseSvg, setShowcaseSvg] = useState("");
+  const [showcaseMat, setShowcaseMat] = useState(0);
+  const MATS = Object.keys(METAL_STOPS);
+
   // Warm the serverless pipeline so the first generation feels instant.
   useEffect(() => {
     if (DEMO) fetch("/api/studio/health").catch(() => {});
+    fetch("/demo/design_manufacturing_optimized.svg")
+      .then((r) => (r.ok ? r.text() : ""))
+      .then(setShowcaseSvg)
+      .catch(() => {});
   }, []);
+  useEffect(() => {
+    if (live) return;
+    const timer = setInterval(() => setShowcaseMat((i) => i + 1), 2600);
+    return () => clearInterval(timer);
+  }, [live]);
 
   // Hosted preview: the static demo cannot reach the kernel API, but the
   // REAL deterministic pipeline runs serverless at /api/studio/* — any name
@@ -200,6 +215,23 @@ export default function DesignStudio() {
 
   const p = detail.data;
 
+  // Product-look previews for the stored project's variants.
+  const [projSvgs, setProjSvgs] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!p?.variants?.length) return;
+    p.variants.forEach((v) => {
+      const inline = (v as { svg?: string }).svg;
+      if (inline) {
+        setProjSvgs((prev) => (prev[v.variant_id] ? prev : { ...prev, [v.variant_id]: inline }));
+        return;
+      }
+      fetch(authedUrl(`/api/design/projects/${p.id}/variants/${v.variant_id}.svg`))
+        .then((r) => (r.ok ? r.text() : ""))
+        .then((txt) => txt && setProjSvgs((prev) => ({ ...prev, [v.variant_id]: txt })))
+        .catch(() => {});
+    });
+  }, [p]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -208,6 +240,20 @@ export default function DesignStudio() {
         </h2>
         <p className="text-xs text-stone-400 mt-1 max-w-2xl">{t("design_studio_lead")}</p>
       </div>
+
+      {!live && showcaseSvg && (
+        <section className="rounded-xl bg-ink p-5 sm:p-6 flex flex-col sm:flex-row items-center gap-5">
+          <div className="w-40 sm:w-48 shrink-0 [&_svg]:w-full [&_svg]:h-auto">
+            <JewelPreview svgText={showcaseSvg}
+                          material={MATS[showcaseMat % MATS.length]}
+                          finish="black_enamel" size="100%" />
+          </div>
+          <div className="text-center sm:text-start">
+            <p className="font-display text-gold text-lg leading-snug">{t("showcase_title")}</p>
+            <p className="text-stone-100/70 text-xs mt-2 max-w-sm">{t("showcase_sub")}</p>
+          </div>
+        </section>
+      )}
 
       <section className="card p-4 space-y-3">
         <h3 className="font-display text-sm flex items-center gap-2">
@@ -489,11 +535,19 @@ export default function DesignStudio() {
                     return (
                       <div key={v.variant_id}
                            className={`card p-3 space-y-2 ${isSelected ? "border-gold-deep" : ""}`}>
-                        <img
-                          src={authedUrl(`/api/design/projects/${p.id}/variants/${v.variant_id}.svg`)}
-                          alt={v.meta.label_en}
-                          className="w-full aspect-square bg-white rounded border border-stone-100"
-                        />
+                        {projSvgs[v.variant_id] ? (
+                          <div className="w-full [&_svg]:w-full [&_svg]:h-auto">
+                            <JewelPreview svgText={projSvgs[v.variant_id]}
+                                          material="silver_925" finish="black_enamel"
+                                          size="100%" />
+                          </div>
+                        ) : (
+                          <img
+                            src={authedUrl(`/api/design/projects/${p.id}/variants/${v.variant_id}.svg`)}
+                            alt={v.meta.label_en}
+                            className="w-full aspect-square bg-white rounded border border-stone-100"
+                          />
+                        )}
                         <div>
                           <p className="text-sm font-medium">{v.meta.label_en}</p>
                           <p dir="rtl" className="text-xs text-stone-500">{v.meta.label_ar}</p>

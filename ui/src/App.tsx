@@ -182,8 +182,32 @@ export default function App() {
         locally with <code className="font-mono">make dev</code>.
       </div>
     )}
-    <div className="min-h-screen flex">
-      <aside className="w-56 shrink-0 border-e border-stone-200 bg-white p-4 flex flex-col gap-6">
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Mobile-first: compact top bar with horizontal nav on phones. */}
+      <div className="lg:hidden border-b border-stone-200 bg-white px-3 pt-2 pb-1.5 sticky top-0 z-20">
+        <div className="flex items-center gap-2.5 mb-1.5">
+          <img src="/brand/logo.png" alt="Beyond Style" className="w-8 h-8 rounded-full shadow-sm" />
+          <h1 className="font-display text-sm tracking-wide flex-1">Beyond Style</h1>
+          <button className="btn !py-1 !px-2 !text-xs flex items-center gap-1"
+                  onClick={() => setLang(lang === "en" ? "ar" : "en")}
+                  aria-label="toggle language">
+            <Languages size={12} /> {lang === "en" ? "ع" : "EN"}
+          </button>
+        </div>
+        <nav className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
+          {NAV.map(({ to, key, icon: Icon }) => (
+            <NavLink key={to} to={to}
+              className={({ isActive }) =>
+                `flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs whitespace-nowrap transition-colors ${
+                  isActive ? "bg-ink text-white" : "bg-stone-100 text-stone-500"
+                }`
+              }>
+              <Icon size={13} /> {t(key)}
+            </NavLink>
+          ))}
+        </nav>
+      </div>
+      <aside className="hidden lg:flex w-56 shrink-0 border-e border-stone-200 bg-white p-4 flex-col gap-6">
         <div className="flex items-center gap-3">
           <img src="/brand/logo.png" alt="Beyond Style" className="w-12 h-12 rounded-full shadow-sm" />
           <div>
@@ -214,7 +238,7 @@ export default function App() {
           <Languages size={14} /> {lang === "en" ? "العربية" : "English"}
         </button>
       </aside>
-      <main className="flex-1 p-6 max-w-6xl">
+      <main className="flex-1 p-4 sm:p-6 max-w-6xl">
         <Routes>
           <Route path="/" element={<Navigate to="/command" replace />} />
           <Route path="/command" element={<Command />} />
