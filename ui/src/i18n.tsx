@@ -153,6 +153,11 @@ const STRINGS: Record<string, { en: string; ar: string }> = {
   generating: { en: "Shaping & verifying…", ar: "جارٍ التشكيل والتدقيق…" },
   mixed_pick: { en: "Pick one script:", ar: "اختر أحد النصين:" },
   download_all: { en: "Download all files (ZIP)", ar: "تنزيل كل الملفات (ZIP)" },
+  final_design: { en: "Final design", ar: "التصميم النهائي" },
+  fin_black_enamel: { en: "Black enamel", ar: "مينا سوداء" },
+  fin_white_enamel: { en: "White enamel", ar: "مينا بيضاء" },
+  fin_mirror_polish: { en: "Mirror polish", ar: "تلميع مرآة" },
+  fin_brushed: { en: "Brushed", ar: "مصقول ناعم" },
   sheet_pdf: { en: "Customer sheet", ar: "ورقة العميل" },
   live_error: {
     en: "Could not generate — check the inscription (max 40 characters) and try again.",

@@ -6,6 +6,7 @@ import {
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, authedUrl, DesignProjectDetail, DesignProjectSummary } from "../api";
+import { JewelPreview, METAL_STOPS } from "../components/JewelPreview";
 import { DEMO, demoTransliterate } from "../demo";
 import { useLang, useT } from "../i18n";
 
@@ -84,6 +85,9 @@ export default function DesignStudio() {
   const [live, setLive] = useState<LivePreview | null>(null);
   const [liveBusy, setLiveBusy] = useState(false);
   const [liveError, setLiveError] = useState("");
+  const [liveVariantId, setLiveVariantId] = useState("manufacturing_optimized");
+  const [liveMaterial, setLiveMaterial] = useState("silver_925");
+  const [liveFinish, setLiveFinish] = useState("black_enamel");
 
   const hasLatin = /[A-Za-z]/.test(inscription);
 
@@ -314,12 +318,63 @@ export default function DesignStudio() {
               ).map((iss, i) => <li key={i}>{iss}</li>)}
             </ul>
           )}
+          {live.variants.length > 0 && (() => {
+            const hero = live.variants.find((v) => v.variant_id === liveVariantId)
+              ?? live.variants[live.variants.length - 1];
+            return (
+              <div className="rounded-xl bg-ink p-4 sm:p-6 flex flex-col items-center gap-3">
+                <p className="text-[10px] uppercase tracking-[0.3em] text-gold">
+                  {t("final_design")}
+                </p>
+                <div className="w-full max-w-[340px] [&_svg]:w-full [&_svg]:h-auto">
+                  <JewelPreview svgText={hero.svg} material={liveMaterial}
+                                finish={liveFinish} size="100%" />
+                </div>
+                <p className="text-stone-100 text-sm">
+                  {hero.meta[lang === "ar" ? "label_ar" : "label_en"]}
+                  {hero.price_from_aed != null && (
+                    <span className="text-gold ms-2">
+                      {t("starting_price_label")}: {hero.price_from_aed} AED
+                    </span>
+                  )}
+                </p>
+                <div className="flex gap-2 flex-wrap justify-center">
+                  {Object.keys(METAL_STOPS).map((m) => (
+                    <button key={m} onClick={() => setLiveMaterial(m)}
+                            aria-label={m}
+                            className={`w-8 h-8 rounded-full border-2 transition-all ${
+                              liveMaterial === m ? "border-gold scale-110" : "border-stone-500/40"
+                            }`}
+                            style={{ background: `linear-gradient(135deg, ${METAL_STOPS[m][0]}, ${METAL_STOPS[m][2]})` }} />
+                  ))}
+                </div>
+                <div className="flex gap-1.5 flex-wrap justify-center">
+                  {(["black_enamel", "white_enamel", "mirror_polish", "brushed"] as const).map((f) => (
+                    <button key={f} onClick={() => setLiveFinish(f)}
+                            className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+                              liveFinish === f
+                                ? "border-gold bg-gold/10 text-gold"
+                                : "border-stone-500/40 text-stone-400"
+                            }`}>
+                      {t(`fin_${f}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
           {live.variants.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {live.variants.map((v) => (
-                <div key={v.variant_id} className="card p-3 space-y-2">
-                  <div className="w-full aspect-square bg-white rounded border border-stone-100 [&_svg]:w-full [&_svg]:h-full"
-                       dangerouslySetInnerHTML={{ __html: v.svg }} />
+                <div key={v.variant_id}
+                     className={`card p-3 space-y-2 cursor-pointer transition-colors ${
+                       liveVariantId === v.variant_id ? "border-gold-deep" : "hover:border-stone-300"
+                     }`}
+                     onClick={() => setLiveVariantId(v.variant_id)}>
+                  <div className="w-full [&_svg]:w-full [&_svg]:h-auto">
+                    <JewelPreview svgText={v.svg} material={liveMaterial}
+                                  finish={liveFinish} size="100%" />
+                  </div>
                   <p className="text-sm font-medium">{v.meta.label_en}</p>
                   <p dir="rtl" className="text-xs text-stone-500">{v.meta.label_ar}</p>
                   <div className="flex flex-wrap gap-1">

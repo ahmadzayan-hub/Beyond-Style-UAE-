@@ -5,6 +5,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { api, authedUrl, DesignProjectDetail } from "../api";
 import { useLang, useT } from "../i18n";
 import { estimatePrice, PricingRules } from "../pricing";
+import { JewelPreview, METAL_STOPS } from "../components/JewelPreview";
 
 /**
  * Showroom "Design Reveal" — the customer-facing screen used in the studio
@@ -20,63 +21,6 @@ const WHATSAPP_NUMBER = "971555615509"; // Beyond Style UAE business WhatsApp
 
 const MATERIALS = ["silver_925", "gold_plated", "rose_gold_plated", "oxidized_silver", "solid_gold_18k"] as const;
 const FINISHES = ["black_enamel", "white_enamel", "mirror_polish", "brushed"] as const;
-
-const METAL_STOPS: Record<string, [string, string, string]> = {
-  silver_925: ["#f4f4f6", "#c9cbd1", "#9a9da6"],
-  gold_plated: ["#f5e3b8", "#d9b979", "#a5813f"],
-  rose_gold_plated: ["#f6d9cd", "#e0ac98", "#b97d67"],
-  oxidized_silver: ["#a9abb2", "#6f7178", "#3c3d42"],
-  solid_gold_18k: ["#f7e6bb", "#ddbd7c", "#aa8542"],
-};
-
-function JewelPreview({ svgText, material, finish, size }: {
-  svgText: string; material: string; finish: string; size: number;
-}) {
-  const { art, face } = useMemo(() => {
-    const inner = svgText.slice(svgText.indexOf(">") + 1, svgText.lastIndexOf("</svg>"));
-    // face diameter comes from the artwork's own mm viewBox (item-dependent)
-    const vb = svgText.match(/viewBox="0 0 ([\d.]+)/);
-    return {
-      art: inner.replace(/<circle[^>]*\/>/g, ""),
-      face: vb ? parseFloat(vb[1]) : 20,
-    };
-  }, [svgText]);
-  const c = face / 2;
-  const [hi, mid, lo] = METAL_STOPS[material] ?? METAL_STOPS.silver_925;
-  const enamel = finish === "black_enamel" ? "#131315"
-    : finish === "white_enamel" ? "#f5f2ec" : null;
-  const gid = `m-${material}`;
-  // On enamel: raised metal lettering. On plain metal: engraved dark lettering.
-  const artFill = enamel ? `url(#${gid})` : finish === "brushed" ? "#3a3b40" : "#26262b";
-  const faceFill = enamel ?? mid;
-  return (
-    <svg viewBox={`0 0 ${face} ${face}`} width={size} height={size}
-         style={{ transition: "all .4s" }}>
-      <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor={hi} />
-          <stop offset="0.55" stopColor={mid} />
-          <stop offset="1" stopColor={lo} />
-        </linearGradient>
-        <radialGradient id={`face-${gid}`} cx="0.35" cy="0.3" r="0.9">
-          <stop offset="0" stopColor={enamel ? faceFill : hi} />
-          <stop offset="1" stopColor={enamel ? faceFill : mid} />
-        </radialGradient>
-      </defs>
-      <style>{`.reveal-art path { fill: ${artFill}; transition: fill .4s; }`}</style>
-      <circle cx={c} cy={c} r={c * 0.98} fill={`url(#${gid})`} />
-      <circle cx={c} cy={c} r={c * 0.87} fill={`url(#face-${gid})`} />
-      {enamel === "#f5f2ec" && (
-        <circle cx={c} cy={c} r={c * 0.87} fill="none" stroke="#ddd8cd"
-                strokeWidth={face * 0.004} />
-      )}
-      <g className="reveal-art" dangerouslySetInnerHTML={{ __html: art }} />
-      <ellipse cx={c * 0.68} cy={c * 0.56} rx={c * 0.46} ry={c * 0.22} fill="#ffffff"
-               opacity={enamel ? 0.08 : 0.28}
-               transform={`rotate(-24 ${c * 0.68} ${c * 0.56})`} />
-    </svg>
-  );
-}
 
 export default function Reveal() {
   const t = useT();
