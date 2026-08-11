@@ -154,6 +154,7 @@ const STRINGS: Record<string, { en: string; ar: string }> = {
   mixed_pick: { en: "Pick one script:", ar: "اختر أحد النصين:" },
   download_all: { en: "Download all files (ZIP)", ar: "تنزيل كل الملفات (ZIP)" },
   final_design: { en: "Final design", ar: "التصميم النهائي" },
+  item_type_label: { en: "Item type", ar: "نوع القطعة" },
   showcase_title: {
     en: "Type a name. See it become a real piece.",
     ar: "اكتب اسمًا، وشاهده يتحول إلى قطعة حقيقية.",

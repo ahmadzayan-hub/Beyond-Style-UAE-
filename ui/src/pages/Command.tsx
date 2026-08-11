@@ -107,6 +107,7 @@ function AgentCard({ agent, hasAvatar, onUpload }: {
       </button>
       <input
         ref={input} type="file" accept="image/png,image/jpeg,image/webp" hidden
+        aria-label="upload agent photo"
         onChange={(e) => e.target.files?.[0] && onUpload(agent.name, e.target.files[0])}
       />
     </div>

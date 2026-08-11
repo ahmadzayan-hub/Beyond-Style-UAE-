@@ -62,20 +62,20 @@ export default function Studio() {
         <div className="grid md:grid-cols-2 gap-3 mb-3">
           <input
             className="border border-stone-300 rounded px-3 py-2 text-sm"
-            placeholder="brief title"
+            placeholder="brief title" aria-label="brief title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
           <input
             className="border border-stone-300 rounded px-3 py-2 text-sm"
-            placeholder="imagegen model id"
+            placeholder="imagegen model id" aria-label="image generation model id"
             value={model}
             onChange={(e) => setModel(e.target.value)}
           />
         </div>
         <textarea
           className="border border-stone-300 rounded px-3 py-2 text-sm w-full h-20 font-mono"
-          placeholder={"one seed per line, e.g.\nmotif.primary=falcon\nform.silhouette=bar"}
+          aria-label="brief seed values" placeholder={"one seed per line, e.g.\nmotif.primary=falcon\nform.silhouette=bar"}
           value={seedText}
           onChange={(e) => setSeedText(e.target.value)}
         />

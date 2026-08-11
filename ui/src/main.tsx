@@ -4,6 +4,14 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { LangProvider } from "./i18n";
+import "@fontsource/cinzel/400.css";
+import "@fontsource/cinzel/600.css";
+import "@fontsource/montserrat/300.css";
+import "@fontsource/montserrat/400.css";
+import "@fontsource/montserrat/500.css";
+import "@fontsource/noto-sans-arabic/300.css";
+import "@fontsource/noto-sans-arabic/400.css";
+import "@fontsource/noto-sans-arabic/500.css";
 import "./index.css";
 
 const queryClient = new QueryClient({

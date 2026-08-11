@@ -241,12 +241,16 @@ export default function DesignStudio() {
         <p className="text-xs text-stone-400 mt-1 max-w-2xl">{t("design_studio_lead")}</p>
       </div>
 
-      {!live && showcaseSvg && (
-        <section className="rounded-xl bg-ink p-5 sm:p-6 flex flex-col sm:flex-row items-center gap-5">
+      {!live && (
+        <section className="rounded-xl bg-ink p-5 sm:p-6 flex flex-col sm:flex-row items-center gap-5 min-h-[16rem] sm:min-h-[13rem]">
           <div className="w-40 sm:w-48 shrink-0 [&_svg]:w-full [&_svg]:h-auto">
-            <JewelPreview svgText={showcaseSvg}
-                          material={MATS[showcaseMat % MATS.length]}
-                          finish="black_enamel" size="100%" />
+            {showcaseSvg ? (
+              <JewelPreview svgText={showcaseSvg}
+                            material={MATS[showcaseMat % MATS.length]}
+                            finish="black_enamel" size="100%" />
+            ) : (
+              <div className="w-full aspect-square rounded-full bg-white/10" aria-hidden />
+            )}
           </div>
           <div className="text-center sm:text-start">
             <p className="font-display text-gold text-lg leading-snug">{t("showcase_title")}</p>
@@ -262,6 +266,7 @@ export default function DesignStudio() {
         <div className="flex flex-wrap gap-2 items-center">
           <input
             dir="auto"
+            aria-label={t("new_inscription")}
             className="border border-stone-300 rounded px-3 py-2 text-lg w-64"
             placeholder="زهران / Zahran"
             value={inscription}
@@ -269,6 +274,7 @@ export default function DesignStudio() {
             onKeyDown={(e) => e.key === "Enter" && submit()}
           />
           <select
+            aria-label={t("item_type_label")}
             className="border border-stone-300 rounded px-2 py-2 text-sm"
             value={itemType}
             onChange={(e) => setItemType(e.target.value)}
@@ -387,7 +393,8 @@ export default function DesignStudio() {
                 <div className="flex gap-2 flex-wrap justify-center">
                   {Object.keys(METAL_STOPS).map((m) => (
                     <button key={m} onClick={() => setLiveMaterial(m)}
-                            aria-label={m}
+                            aria-label={m.replace(/_/g, " ")}
+                            aria-pressed={liveMaterial === m}
                             className={`w-8 h-8 rounded-full border-2 transition-all ${
                               liveMaterial === m ? "border-gold scale-110" : "border-stone-500/40"
                             }`}

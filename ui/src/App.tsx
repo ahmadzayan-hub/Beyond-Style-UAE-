@@ -3,19 +3,25 @@ import {
   Archive, BadgeCheck, Cpu, Gem, Hammer, Landmark, Languages, LineChart,
   PenTool, ScrollText, ShieldAlert,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { api, ApiError, authedUrl, Escalation, FeedEvent, getToken, setToken } from "./api";
 import { DEMO, startDemoFeed } from "./demo";
 import { useLang, useT } from "./i18n";
-import Command from "./pages/Command";
-import Corpus from "./pages/Corpus";
-import Custody from "./pages/Custody";
-import DesignStudio from "./pages/DesignStudio";
-import Reveal from "./pages/Reveal";
-import Studio from "./pages/Studio";
-import Trends from "./pages/Trends";
-import Workshop from "./pages/Workshop";
+// Route-level code splitting: each workspace loads on demand, keeping the
+// initial bundle to the shell + the visited page.
+const Command = lazy(() => import("./pages/Command"));
+const Corpus = lazy(() => import("./pages/Corpus"));
+const Custody = lazy(() => import("./pages/Custody"));
+const DesignStudio = lazy(() => import("./pages/DesignStudio"));
+const Reveal = lazy(() => import("./pages/Reveal"));
+const Studio = lazy(() => import("./pages/Studio"));
+const Trends = lazy(() => import("./pages/Trends"));
+const Workshop = lazy(() => import("./pages/Workshop"));
+
+const PageFallback = () => (
+  <div className="p-8 text-sm text-stone-500" role="status">…</div>
+);
 
 const NAV = [
   { to: "/command", key: "command", icon: Cpu },
@@ -166,17 +172,19 @@ export default function App() {
   if (location.pathname.startsWith("/reveal")) {
     return (
       <TokenGate>
-        <Routes>
-          <Route path="/reveal/:id" element={<Reveal />} />
-          <Route path="/reveal" element={<Navigate to="/reveal/1" replace />} />
-        </Routes>
+        <Suspense fallback={<div className="min-h-screen bg-ink" role="status" />}>
+          <Routes>
+            <Route path="/reveal/:id" element={<Reveal />} />
+            <Route path="/reveal" element={<Navigate to="/reveal/1" replace />} />
+          </Routes>
+        </Suspense>
       </TokenGate>
     );
   }
   return (
     <TokenGate>
     {DEMO && (
-      <div className="bg-amber-flag text-white text-xs text-center py-1.5 px-3">
+      <div className="bg-gold text-ink text-xs text-center py-1.5 px-3">
         Hosted preview — the Design Studio runs the real deterministic pipeline
         live (type any name). Kernel workflows (approvals, custody, ledger) run
         locally with <code className="font-mono">make dev</code>.
@@ -239,6 +247,7 @@ export default function App() {
         </button>
       </aside>
       <main className="flex-1 p-4 sm:p-6 max-w-6xl">
+        <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/" element={<Navigate to="/command" replace />} />
           <Route path="/command" element={<Command />} />
@@ -249,6 +258,7 @@ export default function App() {
           <Route path="/design" element={<DesignStudio />} />
           <Route path="/workshop" element={<Workshop />} />
         </Routes>
+        </Suspense>
       </main>
       <aside className="w-80 shrink-0 p-4 space-y-4 hidden xl:block">
         <Escalations />

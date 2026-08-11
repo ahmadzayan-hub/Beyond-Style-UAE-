@@ -146,15 +146,16 @@ export default function Reveal() {
     <div className="min-h-screen bg-ink text-stone-100 flex flex-col">
       {/* top bar */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-stone-500/20">
-        <Link to="/design" className="text-stone-400 hover:text-gold flex items-center gap-1.5 text-xs">
+        <Link to="/design" className="text-stone-300 hover:text-gold flex items-center gap-1.5 text-xs">
           <ArrowLeft size={14} /> {t("back_studio")}
         </Link>
         <div className="text-center">
-          <p className="font-display tracking-[0.25em] text-gold text-sm">BEYOND STYLE</p>
-          <p className="text-[9px] text-stone-400 tracking-[0.3em] uppercase">{t("design_reveal")}</p>
+          <h1 className="font-display tracking-[0.25em] text-gold text-sm">BEYOND STYLE</h1>
+          <p className="text-[9px] text-stone-300 tracking-[0.3em] uppercase">{t("design_reveal")}</p>
         </div>
         <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer"
-           className="text-stone-400 hover:text-gold"><Instagram size={16} /></a>
+           aria-label="Beyond Style UAE on Instagram"
+           className="text-stone-300 hover:text-gold"><Instagram size={16} /></a>
       </header>
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-5 grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -220,7 +221,7 @@ export default function Reveal() {
         <section className="lg:col-span-2 space-y-4">
           <div>
             <p dir="rtl" className="text-3xl text-gold font-light">{p.inscription}</p>
-            <p className="text-xs text-stone-400 mt-1">
+            <p className="text-xs text-stone-300 mt-1">
               {t(`item_${p.item_type}`)} · {variant?.meta[lang === "ar" ? "label_ar" : "label_en"]}
             </p>
           </div>
@@ -233,7 +234,7 @@ export default function Reveal() {
                       className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                         variantId === v.variant_id
                           ? "border-gold bg-gold/10 text-gold"
-                          : "border-stone-500/40 text-stone-400 hover:border-gold/50"
+                          : "border-stone-500/40 text-stone-300 hover:border-gold/50"
                       }`}>
                 {v.meta[lang === "ar" ? "label_ar" : "label_en"]}
               </button>
@@ -244,14 +245,18 @@ export default function Reveal() {
           <div>
             <p className="text-[10px] uppercase tracking-widest text-stone-500 mb-1.5">{t("material")}</p>
             <div className="flex gap-2 flex-wrap">
-              {MATERIALS.map((m) => (
-                <button key={m} onClick={() => setMaterial(m)}
-                        className={`w-9 h-9 rounded-full border-2 transition-all ${
-                          material === m ? "border-gold scale-110" : "border-stone-500/40"
-                        }`}
-                        title={rules?.material_multiplier[m]?.[lang === "ar" ? "label_ar" : "label_en"] ?? m}
-                        style={{ background: `linear-gradient(135deg, ${METAL_STOPS[m][0]}, ${METAL_STOPS[m][2]})` }} />
-              ))}
+              {MATERIALS.map((m) => {
+                const label = rules?.material_multiplier[m]?.[lang === "ar" ? "label_ar" : "label_en"]
+                  ?? m.replace(/_/g, " ");
+                return (
+                  <button key={m} onClick={() => setMaterial(m)}
+                          className={`w-9 h-9 rounded-full border-2 transition-all ${
+                            material === m ? "border-gold scale-110" : "border-stone-500/40"
+                          }`}
+                          title={label} aria-label={label} aria-pressed={material === m}
+                          style={{ background: `linear-gradient(135deg, ${METAL_STOPS[m][0]}, ${METAL_STOPS[m][2]})` }} />
+                );
+              })}
             </div>
           </div>
 
@@ -264,7 +269,7 @@ export default function Reveal() {
                         className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                           finish === f
                             ? "border-gold bg-gold/10 text-gold"
-                            : "border-stone-500/40 text-stone-400 hover:border-gold/50"
+                            : "border-stone-500/40 text-stone-300 hover:border-gold/50"
                         }`}>
                   {rules?.finish_adder[f]?.[lang === "ar" ? "label_ar" : "label_en"] ?? f}
                 </button>
@@ -287,14 +292,16 @@ export default function Reveal() {
               </div>
               <div className="flex items-center gap-2">
                 <button className="w-8 h-8 rounded-full border border-stone-500/40 text-stone-300"
+                        aria-label="decrease quantity"
                         onClick={() => setQuantity((q) => Math.max(1, q - 1))}>−</button>
-                <span className="text-sm w-6 text-center">{quantity}</span>
+                <span className="text-sm w-6 text-center" aria-live="polite">{quantity}</span>
                 <button className="w-8 h-8 rounded-full border border-stone-500/40 text-stone-300"
+                        aria-label="increase quantity"
                         onClick={() => setQuantity((q) => q + 1)}>+</button>
               </div>
             </div>
             {!price?.quoteOnRequest && quantity > 1 && (
-              <p className="text-xs text-stone-400">
+              <p className="text-xs text-stone-300">
                 {t("total")}: <span className="text-gold">{price?.totalAed?.toLocaleString()} AED</span>
               </p>
             )}

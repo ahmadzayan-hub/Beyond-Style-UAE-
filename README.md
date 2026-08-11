@@ -75,6 +75,21 @@ library/ corpus/ exports/   data folders (disk is the source of truth)
 - `docs/design-studio.md` — Design Studio: deterministic spelling, trust ladder, workshop files
 - `templates/supplier-permission-letter.md` — bilingual permission letter
 
+### Audit & release documentation (2026-08 pass)
+
+- `docs/PROJECT_AUDIT_BASELINE.md` — baseline measurements, findings #1–11
+- `docs/PRODUCT_REQUIREMENTS_AND_USER_JOURNEYS.md` — personas, FRs, verified journeys
+- `docs/UX_UI_DESIGN_SYSTEM.md` — tokens, components, a11y and contrast standards
+- `docs/AI_SYSTEM_AND_PROMPT_ARCHITECTURE.md` — where AI is and is not used
+- `docs/AI_EVALUATION_PLAN.md` — golden tests, batteries, eval cadence
+- `docs/SECURITY_AND_RESPONSIBLE_AI_ASSESSMENT.md` — controls, open risks, RAI posture
+- `docs/PERFORMANCE_REPORT.md` — Lighthouse before/after, what changed
+- `docs/REQUIREMENTS_TRACEABILITY_MATRIX.md` — requirement → code → test
+- `docs/TEST_STRATEGY.md` — layers, commands, CI gap plan
+- `docs/DEPLOYMENT_AND_ROLLBACK.md` — local + Vercel procedures, rollback
+- `docs/RELEASE_READINESS_REPORT.md` — gate results, verdict, reproduction commands
+- `CHANGELOG.md` — release notes
+
 ## CLI
 
 ```bash

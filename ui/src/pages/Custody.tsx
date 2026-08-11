@@ -58,7 +58,7 @@ export default function Custody() {
           <span>{inbox.data?.count ?? 0} pending</span>
           <input
             className="border border-stone-300 rounded px-2 py-1 text-sm w-36"
-            placeholder="licence id"
+            placeholder="licence id" aria-label="licence id"
             value={licenceId}
             onChange={(e) => setLicenceId(e.target.value)}
           />

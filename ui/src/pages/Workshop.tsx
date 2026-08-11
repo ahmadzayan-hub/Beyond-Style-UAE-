@@ -124,14 +124,14 @@ export default function Workshop() {
           <Camera size={15} /> {t("upload_photo")}
         </h3>
         <div className="flex items-center gap-2">
-          <select className="border border-stone-300 rounded px-2 py-1.5 text-sm"
+          <select aria-label="photograph category" className="border border-stone-300 rounded px-2 py-1.5 text-sm"
                   value={category} onChange={(e) => setCategory(e.target.value)}>
             {["necklaces", "bracelets", "anklets", "rings", "earrings", "gift_sets",
               "kids", "brooches", "mens_chains", "car_hangers_keychains"].map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
-          <input ref={fileInput} type="file" accept="image/*" className="text-sm"
+          <input ref={fileInput} aria-label="upload workshop photograph" type="file" accept="image/*" className="text-sm"
                  onChange={(e) => e.target.files?.[0] && upload.mutate(e.target.files[0])} />
         </div>
         {upload.error && <p className="text-deny text-xs mt-2">{String(upload.error)}</p>}
