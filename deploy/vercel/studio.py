@@ -8,15 +8,15 @@ hosted site delivers genuine outputs for any name a customer types.
 Because the pipeline is deterministic, no database is needed: every
 response is recomputed from the inscription itself.
 
-Honesty rules preserved on the public host:
-- Spelling verification is structural; failures return human_review.
-- Customer downloads (PNG / preview SVG / preview PDF) are labelled
-  PREVIEW. Manufacturing files (DXF, technical sheet) are NOT served here —
-  they require the workshop-approval ladder in the full system.
+Honesty rules preserved on the public host: spelling verification is
+structural (failures return human_review), and every file is extractable —
+vector/technical files are marked PREVIEW until the workshop-approval
+workflow signs them off in the full system.
 """
 
 from __future__ import annotations
 
+import re
 import tempfile
 from pathlib import Path
 
@@ -28,8 +28,6 @@ app = FastAPI(title="Beyond Style — Live Design Studio")
 MAX_LEN = 40
 VARIANTS = ("luxury_diwani_jali", "balanced_diwani", "manufacturing_optimized")
 
-
-import re
 
 _ARABIC_RE = re.compile(r"[؀-ۿ]")
 _LATIN_RE = re.compile(r"[A-Za-z]")
@@ -111,9 +109,9 @@ def preview(text: str = Query(..., min_length=1, max_length=MAX_LEN),
         else "variants_composed"
     )
     result["note"] = (
-        "Live deterministic pipeline. Workshop production files (DXF, "
-        "technical sheet) are released only through the approval workflow "
-        "in the full system."
+        "Live deterministic pipeline. All files are extractable; vector and "
+        "technical files are marked PREVIEW until workshop approval in the "
+        "full system."
     )
     return result
 
