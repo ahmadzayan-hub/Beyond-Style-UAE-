@@ -1,0 +1,31 @@
+# BSOS policy configuration.
+#
+# Thresholds are tunable; every runtime change is written to the ledger with
+# old value, new value, actor, timestamp and reason.
+#
+# Rule ENABLEMENT is not configurable. Setting `enabled: false` on any of
+# P1-P8 fails the load (see PolicyEngine._load_config). The `policies` block
+# exists only for documentation and future escalation-policy tuning.
+
+thresholds:
+  originality_max_similarity: 0.86   # CLIP cosine ceiling; see docs/threshold-tuning.md
+  originality_escalation_margin: 0.03
+  phash_min_distance: 8              # perceptual-hash secondary check
+  corpus_min_references: 40          # P4 floor
+  corpus_min_sources: 12             # P4 floor
+  provenance_min_sources: 3          # P3 minimum
+  licence_expiry_warning_days: 30
+  price_floor_aed: 265
+  graph_rate_limit_per_hour: 150     # app limit ~200/h; bucket at 150
+  asset_min_resolution: 512
+  max_originality_rerolls: 2
+
+policies:
+  P1: {name: NO_IMAGE_TO_GENERATOR}
+  P2: {name: LICENCE_REQUIRED}
+  P3: {name: PROVENANCE_MINIMUM}
+  P4: {name: CORPUS_FLOOR}
+  P5: {name: NO_AI_PUBLICATION}
+  P6: {name: NO_UNVERIFIED_MATERIAL_CLAIMS}
+  P7: {name: NO_SCRAPING}
+  P8: {name: CONTEXT_SEPARATION}

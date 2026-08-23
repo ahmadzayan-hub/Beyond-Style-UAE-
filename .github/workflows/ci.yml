@@ -1,0 +1,68 @@
+name: CI
+
+# push-only: PRs from branches in this repo get their checks from the push
+# event; running pull_request too duplicated every run on the same commit.
+on:
+  push:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: pip install -e '.[dev]'
+      - name: Tests
+        run: pytest tests/ -q
+      - name: Alembic migration applies to a fresh DB
+        run: |
+          mkdir -p var
+          BSOS_DB_URL=sqlite:///var/ci.db alembic upgrade head
+
+  ui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Type-check and build
+        run: npm run build
+
+  audit:
+    # Report-only: advisories in transitive deps shouldn't block a compliance
+    # fix from merging, but they must be visible on every push.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: pip-audit
+        run: |
+          # upgrade the runner's own build tooling first — pip-audit audits the
+          # whole environment, and a stale setuptools is a finding about the
+          # runner, not about BSOS's dependency tree
+          pip install --upgrade pip setuptools
+          pip install pip-audit
+          pip install -e .
+          pip-audit
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: npm audit (accepted-risk filter)
+        working-directory: ui
+        # fails on any high/critical advisory not documented in the filter
+        run: node scripts/audit-filter.mjs
