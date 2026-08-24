@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased] — Imagine mode (2026-08)
+
+- **Imagine engine** (`bsos/design_studio/imagine.py`, skill
+  `design.imagine`, `/api/studio/imagine`): customers describe what they
+  imagine in a full sentence, Arabic or English ("خاتم ذهب وردي باسم
+  نورة"); item, metal, finish, style and inscription are parsed
+  deterministically and the inscription runs through the same fail-closed
+  verification as a typed name. No name in the wish → bilingual ask,
+  never a guess.
+- **AI concept photo**: an open-source image model (FLUX family, free
+  endpoint) paints the piece from a jewellery-expert prompt that forbids
+  all lettering; the verified Arabic inscription is overlaid by the
+  engine. Labelled "AI CONCEPT — inspiration only" with graceful
+  fallback; downloads still come only from the verified pipeline.
+- **Simpler luxury studio page**: single imagine-first flow on the hosted
+  site — sentence in, understood-as chips, final-design hero with
+  auto-selected material, concept photo, variants, downloads; operator
+  project panels now appear only in the local kernel deployment.
+- Docs: `docs/FUNCTION_VALUE_ASSESSMENT.md` (10/10 review of every
+  customer-facing function). Backend suite now 107 tests.
+
 ## [Unreleased] — improvement/production-uiux-performance (2026-08)
 
 Audit-driven UX, accessibility, performance, and security pass. No

@@ -283,3 +283,43 @@ def test_font_registry_never_downloads(kernel):
     assert {"Amiri-Regular", "Amiri-Bold"} <= usable
     # review-required entries without a vendored binary are not usable
     assert all(f["binary_present"] for f in fonts["fonts"] if f["usable"])
+
+
+# ---------------------------------------------------------------- imagine ----
+
+def test_imagine_arabic_sentence(kernel):
+    r = kernel.invoke("calligrapher", "design.imagine",
+                      {"text": "أريد خاتم ذهب وردي فخم باسم نورة"})
+    assert r["item"] == "ring" and r["item_detected"]
+    assert r["material"] == "rose_gold_plated" and r["material_detected"]
+    assert r["style_variant"] == "luxury_diwani_jali"
+    assert r["inscription"] == "نورة"
+    assert r["photo_policy"] == "CONCEPT_ONLY"
+    # image models must never be asked to paint letterforms
+    assert "no text, no letters" in r["photo_prompt"]
+    assert "rose gold" in r["photo_prompt"]
+
+
+def test_imagine_english_sentence(kernel):
+    r = kernel.invoke("calligrapher", "design.imagine",
+                      {"text": "a minimal silver pendant with the name Zahran for my father"})
+    assert r["item"] == "pendant"
+    assert r["material"] == "silver_925"
+    assert r["style_variant"] == "manufacturing_optimized"
+    assert r["inscription"] == "Zahran"
+    assert r["needs_inscription"] is False
+
+
+def test_imagine_quoted_and_bare_name(kernel):
+    r = kernel.invoke("calligrapher", "design.imagine",
+                      {"text": 'كبك فضة مكتوب عليه "زهران"'})
+    assert r["item"] == "cufflink" and r["inscription"] == "زهران"
+
+    # a bare name still works: sensible defaults, nothing invented
+    r = kernel.invoke("calligrapher", "design.imagine", {"text": "زهران"})
+    assert r["inscription"] == "زهران"
+    assert r["item"] == "pendant" and not r["item_detected"]
+
+    # no inscription at all → flagged, never guessed
+    r = kernel.invoke("calligrapher", "design.imagine", {"text": "خاتم ذهب"})
+    assert r["needs_inscription"] is True and r["inscription"] == ""
