@@ -4,6 +4,8 @@ An agentic operating system for Beyond Style UAE (Dubai, personalised
 jewellery and gifts, in-house workshop). BSOS runs the loop from market
 signal to shippable product:
 
+<p align="center"><img src="docs/assets/hero.jpg" alt="Concept image (AI-generated). Not a product screenshot." width="100%"><br><sub><em>Concept image (AI-generated). Not a product screenshot.</em></sub></p>
+
 ```
 licensed asset custody → market abstraction → trend synthesis
 → original concept origination → originality verification

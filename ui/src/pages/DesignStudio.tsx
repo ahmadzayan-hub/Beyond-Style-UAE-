@@ -77,7 +77,15 @@ export default function DesignStudio() {
   const { lang } = useLang();
   const queryClient = useQueryClient();
   const [inscription, setInscription] = useState("");
-  const [itemType, setItemType] = useState("cufflink");
+  const [itemType, setItemType] = useState(DEMO ? "" : "cufflink");
+  // What the imagine parser understood from the customer's sentence, plus
+  // the no-lettering prompt for the open-source concept-photo model.
+  const [intent, setIntent] = useState<{
+    inscription: string; item: string; material: string; finish: string;
+    style_variant: string; item_detected: boolean; material_detected: boolean;
+    photo_prompt: string;
+  } | null>(null);
+  const [conceptState, setConceptState] = useState<"loading" | "ready" | "failed">("loading");
   const [selected, setSelected] = useState<number | null>(null);
   const [arabicSuggestions, setArabicSuggestions] = useState<
     { arabic: string; requires_confirmation: boolean; typography_verifiable: boolean }[]
@@ -121,7 +129,7 @@ export default function DesignStudio() {
     setLiveError("");
     try {
       const res = await fetch(
-        `/api/studio/preview?text=${encodeURIComponent(text)}&item=${itemType}`);
+        `/api/studio/preview?text=${encodeURIComponent(text)}&item=${itemType || "pendant"}`);
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setLive(data);
@@ -134,6 +142,52 @@ export default function DesignStudio() {
       setLiveBusy(false);
     }
   };
+
+  // Imagine mode: a whole sentence ("خاتم ذهب باسم نورة") is parsed into
+  // item + material + style + inscription server-side, then the inscription
+  // runs through the SAME fail-closed verification as a typed name.
+  const runImagine = async () => {
+    setLiveBusy(true);
+    setLiveError("");
+    try {
+      const res = await fetch(
+        `/api/studio/imagine?text=${encodeURIComponent(inscription)}` +
+        (itemType ? `&item=${itemType}` : ""));
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      const it = data.intent;
+      setIntent(it);
+      setItemType(it.item);
+      if (it.material_detected) setLiveMaterial(it.material);
+      setLiveFinish(it.finish);
+      setLiveVariantId(it.style_variant);
+      setConceptState("loading");
+      if (data.preview) {
+        setLive(data.preview);
+        setTimeout(() =>
+          document.getElementById("live-results")?.scrollIntoView({ behavior: "smooth" }), 80);
+      } else {
+        setLive(null);
+        const issues = data.verification ?? {};
+        setLiveError(
+          (lang === "ar" ? issues.issues_ar?.[0] : issues.issues?.[0]) ?? t("live_error"));
+      }
+    } catch {
+      setLive(null);
+      setLiveError(t("live_error"));
+    } finally {
+      setLiveBusy(false);
+    }
+  };
+
+  // Stable seed so the same wish redraws the same concept photo.
+  const conceptSeed = intent
+    ? Array.from(intent.photo_prompt).reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 999983, 7)
+    : 0;
+  const conceptUrl = intent
+    ? `https://image.pollinations.ai/prompt/${encodeURIComponent(intent.photo_prompt)}` +
+      `?width=768&height=768&model=flux&nologo=true&seed=${conceptSeed}`
+    : "";
 
 
   const suggestArabic = async () => {
@@ -180,7 +234,7 @@ export default function DesignStudio() {
   const create = useMutation({
     mutationFn: () =>
       api.post<{ project_id: number }>("/api/design/projects", {
-        inscription, item_type: itemType,
+        inscription, item_type: itemType || "cufflink",
       }),
     onSuccess: (r) => {
       setInscription("");
@@ -209,7 +263,7 @@ export default function DesignStudio() {
 
   const submit = () => {
     if (!inscription.trim() || create.isPending || liveBusy) return;
-    if (DEMO) runLive();
+    if (DEMO) runImagine();
     else create.mutate();
   };
 
@@ -259,26 +313,27 @@ export default function DesignStudio() {
         </section>
       )}
 
-      <section className="card p-4 space-y-3">
-        <h3 className="font-display text-sm flex items-center gap-2">
-          <Type size={14} /> {t("new_inscription")}
+      <section className="card p-4 sm:p-5 space-y-3 border-gold/30">
+        <h3 className="font-display text-base flex items-center gap-2">
+          <Type size={15} className="text-gold-deep" /> {t("imagine_title")}
         </h3>
+        <input
+          dir="auto"
+          aria-label={t("imagine_title")}
+          className="border border-stone-300 focus:border-gold-deep outline-none rounded-lg px-4 py-3 text-lg w-full"
+          placeholder={t("imagine_placeholder")}
+          value={inscription}
+          onChange={(e) => setInscription(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+        />
         <div className="flex flex-wrap gap-2 items-center">
-          <input
-            dir="auto"
-            aria-label={t("new_inscription")}
-            className="border border-stone-300 rounded px-3 py-2 text-lg w-64"
-            placeholder="زهران / Zahran"
-            value={inscription}
-            onChange={(e) => setInscription(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submit()}
-          />
           <select
             aria-label={t("item_type_label")}
             className="border border-stone-300 rounded px-2 py-2 text-sm"
             value={itemType}
             onChange={(e) => setItemType(e.target.value)}
           >
+            {DEMO && <option value="">{t("item_auto")}</option>}
             {["cufflink", "pendant", "bracelet", "ring", "brooch", "coin", "corporate_gift"].map(
               (v) => (
                 <option key={v} value={v}>{t(`item_${v}`)}</option>
@@ -291,10 +346,11 @@ export default function DesignStudio() {
             onClick={submit}
           >
             <ShieldCheck size={14} className="inline me-1" />
-            {liveBusy ? t("generating") : t("verify_spelling")}
+            {liveBusy ? t("generating") : t("imagine_cta")}
           </button>
           {liveError && <span className="text-xs text-deny">{liveError}</span>}
         </div>
+        <p className="text-[11px] text-stone-400">{t("imagine_hint")}</p>
         {hasLatin && (
           <div className="space-y-2">
             <button className="btn !text-xs" onClick={suggestArabic}>
@@ -343,6 +399,16 @@ export default function DesignStudio() {
               )}
             </div>
           </div>
+          {intent && live.variants.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] uppercase tracking-widest text-stone-400">
+                {t("understood_as")}
+              </span>
+              <span className="chip">{t(`item_${intent.item}`)}</span>
+              <span className="chip">{t(`fin_${intent.finish}`)}</span>
+              <span dir="rtl" className="chip font-medium">{intent.inscription}</span>
+            </div>
+          )}
           {live.status === "mixed_script" && (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-stone-500">{t("mixed_pick")}</span>
@@ -416,6 +482,54 @@ export default function DesignStudio() {
               </div>
             );
           })()}
+          {intent && live.variants.length > 0 && conceptState !== "failed" && (() => {
+            const hero = live.variants.find((v) => v.variant_id === liveVariantId)
+              ?? live.variants[live.variants.length - 1];
+            const darkMetal = liveMaterial === "oxidized_silver";
+            return (
+              <div className="rounded-xl overflow-hidden bg-ink">
+                <div className="relative w-full max-w-[480px] mx-auto aspect-square">
+                  {/* Open-source model (FLUX family via pollinations.ai, free) paints
+                      the scene with a BLANK face; the verified inscription is layered
+                      by us — image models cannot spell Arabic. */}
+                  <img
+                    src={conceptUrl}
+                    alt={t("concept_title")}
+                    className={`w-full h-full object-cover transition-opacity duration-700 ${
+                      conceptState === "ready" ? "opacity-100" : "opacity-0"
+                    }`}
+                    onLoad={() => setConceptState("ready")}
+                    onError={() => setConceptState("failed")}
+                  />
+                  {conceptState === "loading" && (
+                    <div className="absolute inset-0 flex items-center justify-center" role="status">
+                      <div className="w-24 h-24 rounded-full bg-white/5 animate-pulse" />
+                    </div>
+                  )}
+                  {conceptState === "ready" && (
+                    <div
+                      aria-hidden
+                      className="absolute inset-0 flex items-center justify-center pointer-events-none
+                                 [&_svg]:w-[38%] [&_svg]:h-auto [&_circle]:hidden"
+                      style={{
+                        color: darkMetal ? "#e8c987" : "#241c10",
+                        mixBlendMode: darkMetal ? "screen" : "multiply",
+                        opacity: 0.9,
+                        filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.35))",
+                      }}
+                      dangerouslySetInnerHTML={{
+                        __html: hero.svg.replace(/fill="#111111"/g, 'fill="currentColor"'),
+                      }}
+                    />
+                  )}
+                  <span className="absolute top-2 start-2 chip !bg-ink/70 !text-gold !border-gold/40 backdrop-blur-sm">
+                    {t("concept_chip")}
+                  </span>
+                </div>
+                <p className="text-[10px] text-stone-100/60 px-4 py-2.5">{t("concept_note")}</p>
+              </div>
+            );
+          })()}
           {live.variants.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {live.variants.map((v) => (
@@ -467,10 +581,14 @@ export default function DesignStudio() {
               ))}
             </div>
           )}
+          {intent && conceptState === "failed" && (
+            <p className="text-[10px] text-stone-400">{t("concept_failed")}</p>
+          )}
           <p className="text-[10px] text-stone-400">{t("live_note")}</p>
         </section>
       )}
 
+      {!DEMO && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <section className="card p-3 space-y-1.5 lg:max-h-[70vh] overflow-y-auto">
           <h3 className="font-display text-sm mb-1">{t("projects")}</h3>
@@ -637,6 +755,7 @@ export default function DesignStudio() {
           )}
         </section>
       </div>
+      )}
     </div>
   );
 }

@@ -156,12 +156,34 @@ const STRINGS: Record<string, { en: string; ar: string }> = {
   final_design: { en: "Final design", ar: "التصميم النهائي" },
   item_type_label: { en: "Item type", ar: "نوع القطعة" },
   showcase_title: {
-    en: "Type a name. See it become a real piece.",
-    ar: "اكتب اسمًا، وشاهده يتحول إلى قطعة حقيقية.",
+    en: "Describe what you imagine. Watch it become real.",
+    ar: "صِف ما تتخيله، وشاهده يتحول إلى قطعة حقيقية.",
   },
   showcase_sub: {
-    en: "Spelling verified letter-by-letter, three calligraphic variants, live prices, and every file ready to download.",
-    ar: "إملاء مدقّق حرفًا حرفًا، ثلاث نسخ خطية، أسعار مباشرة، وكل الملفات جاهزة للتنزيل.",
+    en: "A name or a whole idea — “a rose-gold ring with the name Noura”. Spelling verified letter-by-letter, live prices, every file ready to download.",
+    ar: "اسم أو فكرة كاملة — «خاتم ذهب وردي باسم نورة». إملاء مدقّق حرفًا حرفًا، أسعار مباشرة، وكل الملفات جاهزة للتنزيل.",
+  },
+  imagine_title: { en: "Describe what you imagine", ar: "صِف ما تتخيله" },
+  imagine_placeholder: {
+    en: "خاتم ذهب باسم نورة — or: a minimal silver pendant with the name Zahran",
+    ar: "خاتم ذهب باسم نورة — أو اكتب اسمًا فقط",
+  },
+  imagine_cta: { en: "Design it", ar: "صمّمه" },
+  imagine_hint: {
+    en: "A name alone works too. Mention the piece, metal and mood and we set everything for you.",
+    ar: "يكفي الاسم وحده. اذكر القطعة والمعدن والطابع وسنضبط كل شيء لك.",
+  },
+  item_auto: { en: "Detect from description", ar: "اكتشاف من الوصف" },
+  understood_as: { en: "We understood", ar: "فهمنا طلبك" },
+  concept_title: { en: "AI concept photo", ar: "صورة تصوّرية بالذكاء الاصطناعي" },
+  concept_chip: { en: "AI CONCEPT — inspiration only", ar: "تصوّر فني — للإلهام فقط" },
+  concept_note: {
+    en: "An open-source AI model paints the scene; the Arabic inscription is placed by our verified engine — image models cannot spell Arabic. Your downloads always carry the verified design.",
+    ar: "نموذج مفتوح المصدر يرسم المشهد، بينما يضع محركنا المدقّق النقش العربي — نماذج الصور لا تجيد تهجئة العربية. ملفاتك تحمل دائمًا التصميم المدقّق.",
+  },
+  concept_failed: {
+    en: "Concept image unavailable right now — the verified design above is the source of truth.",
+    ar: "صورة التصور غير متاحة حاليًا — التصميم المدقّق أعلاه هو المرجع.",
   },
   fin_black_enamel: { en: "Black enamel", ar: "مينا سوداء" },
   fin_white_enamel: { en: "White enamel", ar: "مينا بيضاء" },

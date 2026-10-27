@@ -116,6 +116,38 @@ def preview(text: str = Query(..., min_length=1, max_length=MAX_LEN),
     return result
 
 
+@app.get("/api/studio/imagine")
+def imagine(text: str = Query(..., min_length=1, max_length=160),
+            item: str = Query("")):
+    """Free-text wish → design brief + live verified preview.
+
+    The sentence is parsed deterministically (item, material, style,
+    inscription); the inscription then runs through the same fail-closed
+    typography pipeline as a typed name. The returned photo_prompt is for
+    an open-source image model and explicitly forbids lettering — concept
+    imagery only; the Arabic on the piece always comes from the engine.
+    """
+    if not text.strip():
+        raise HTTPException(422, "wish is empty")
+    from bsos.design_studio.imagine import build_photo_prompt, parse_intent
+
+    intent = parse_intent(text)
+    if isinstance(item, str) and item:
+        intent["item"] = item
+        intent["item_detected"] = True
+    intent["photo_prompt"] = build_photo_prompt(intent)
+    intent["photo_policy"] = "CONCEPT_ONLY"
+
+    if intent["needs_inscription"]:
+        return {"intent": intent, "preview": None,
+                "verification": {"passed": False, "issues": [
+                    "tell us the name or words to engrave"],
+                    "issues_ar": ["أخبرنا بالاسم أو الكلمات المراد نقشها"]}}
+
+    return {"intent": intent,
+            "preview": preview(text=intent["inscription"], item=intent["item"])}
+
+
 @app.get("/api/studio/transliterate")
 def transliterate(text: str = Query(..., min_length=1, max_length=MAX_LEN)):
     from bsos.design_studio.transliteration import suggest

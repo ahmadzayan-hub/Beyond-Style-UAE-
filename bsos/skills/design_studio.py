@@ -249,6 +249,19 @@ def transliterate(ctx: ToolContext, text: str, font_id: str = "Amiri-Regular") -
     return result
 
 
+@registry.register("design.imagine", required_grant="design.imagine", tags=(),
+                   description="Parse a free-text wish (AR/EN) into a design brief: inscription, item, material, style — plus a no-text photo prompt for open-source concept imagery.")
+def imagine(ctx: ToolContext, text: str) -> dict[str, Any]:
+    from bsos.design_studio.imagine import build_photo_prompt, parse_intent
+
+    intent = parse_intent(text)
+    # CONCEPT_ONLY honesty: the photo prompt bans all lettering; the Arabic
+    # a customer sees on the piece always comes from the verified engine.
+    intent["photo_prompt"] = build_photo_prompt(intent)
+    intent["photo_policy"] = "CONCEPT_ONLY"
+    return intent
+
+
 @registry.register("design.pricing_rules", required_grant="design.pricing_rules", tags=(),
                    description="The configurable pricing rules (AED starting prices) served to the showroom UI.")
 def pricing_rules(ctx: ToolContext) -> dict[str, Any]:
