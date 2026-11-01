@@ -14,7 +14,7 @@ from sqlmodel import JSON, Column, Field, Session, SQLModel, create_engine
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(timezone.utc)
 
 
 class Licence(SQLModel, table=True):

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -38,8 +38,8 @@ def test_expired_licence_denied(kernel):
     kernel.invoke("custodian", "licence.create", {
         "licence_id": "LIC-EXPIRED", "licensor": "Old Supplier", "scope": "ingest",
         "signed_doc_path": str(doc),
-        "valid_from": (datetime.utcnow() - timedelta(days=400)).isoformat(),
-        "valid_to": (datetime.utcnow() - timedelta(days=30)).isoformat(),
+        "valid_from": (datetime.now(timezone.utc) - timedelta(days=400)).isoformat(),
+        "valid_to": (datetime.now(timezone.utc) - timedelta(days=30)).isoformat(),
     })
     make_pattern_image(kernel.paths.library_inbox / "x.png", 3)
     with pytest.raises(PolicyDenied) as excinfo:

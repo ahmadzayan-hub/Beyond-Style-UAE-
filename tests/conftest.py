@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -95,8 +95,8 @@ def make_licence(kernel: Kernel, licence_id: str = "LIC-TEST-001",
     kernel.invoke("custodian", "licence.create", {
         "licence_id": licence_id, "licensor": "Test Supplier LLC", "scope": scope,
         "signed_doc_path": str(doc),
-        "valid_from": (datetime.utcnow() - timedelta(days=1)).isoformat(),
-        "valid_to": (datetime.utcnow() + timedelta(days=days_valid)).isoformat(),
+        "valid_from": (datetime.now(timezone.utc) - timedelta(days=1)).isoformat(),
+        "valid_to": (datetime.now(timezone.utc) + timedelta(days=days_valid)).isoformat(),
     })
     return licence_id
 
