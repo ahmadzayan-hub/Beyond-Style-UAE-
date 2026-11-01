@@ -202,7 +202,7 @@ def _p2_licence_required(engine: PolicyEngine, ctx: ToolContext) -> Decision | N
     doc = Path(licence.signed_doc_path) if licence.signed_doc_path else None
     if not doc or not doc.exists():
         problems.append("signed document missing on disk")
-    if licence.valid_to <= datetime.now(timezone.utc).replace(tzinfo=None):
+    if licence.valid_to <= datetime.now(timezone.utc):
         problems.append(f"expired {licence.valid_to.date()}")
     scopes = {s.strip() for s in (licence.scope or "").split(",") if s.strip()}
     if use not in scopes:
@@ -373,7 +373,7 @@ def _e_licence_expiring(engine: PolicyEngine, ctx: ToolContext) -> Decision | No
     if licence is None:
         return None
     days = int(engine.thresholds["licence_expiry_warning_days"])
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(timezone.utc)
     if now < licence.valid_to <= now + timedelta(days=days):
         affected = ctx.db.exec(select(Asset.id).where(Asset.licence_id == licence_id)).all()
         if ctx.payload.get("acknowledge_expiry"):
