@@ -4,7 +4,7 @@
 # old value, new value, actor, timestamp and reason.
 #
 # Rule ENABLEMENT is not configurable. Setting `enabled: false` on any of
-# P1-P8 fails the load (see PolicyEngine._load_config). The `policies` block
+# P1-P10 fails the load (see PolicyEngine._load_config). The `policies` block
 # exists only for documentation and future escalation-policy tuning.
 
 thresholds:
@@ -29,3 +29,5 @@ policies:
   P6: {name: NO_UNVERIFIED_MATERIAL_CLAIMS}
   P7: {name: NO_SCRAPING}
   P8: {name: CONTEXT_SEPARATION}
+  P9: {name: CHILD_SAFETY}
+  P10: {name: ARABIC_EXACT_TEXT}

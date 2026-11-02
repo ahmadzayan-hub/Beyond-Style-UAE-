@@ -5,7 +5,7 @@ tool call crosses the guard, every policy evaluation (passes included) is
 written to an append-only, hash-chained ledger, and capability grants make
 whole classes of violation structurally impossible before any rule runs.
 
-## The eight policies
+## The ten policies
 
 **P1 — NO_IMAGE_TO_GENERATOR.** The image generator accepts
 `generate_image(prompt: str, model: str)` and nothing else. The kernel
@@ -49,7 +49,38 @@ libraries fails the build if one enters the dependency tree
 shares a record, file path or export bundle with RTA or public-sector
 context. This policy evaluates on **every** tool call.
 
-Rule enablement is not configurable: attempting to disable P1–P8 in
+**P9 — CHILD_SAFETY.** Deterministic rules ported from the sibling Agentic
+OS `SafetyAgent` reject child choking, small detachable parts, unsafe chain
+length, strangulation, sharp edges, weak clasps, unsafe stones, magnets,
+unverified coatings, toxic/restricted materials and fragile attachments.
+Structural weakness and declared sharp-edge risks also fail for adult
+products. A denial has no override flag or approval path. A safe wearable
+child product escalates for dedicated human safety review; BSOS does not
+yet implement a trusted release path for that approval.
+
+P9 runs on every tool call. Facts may use snake_case or the sibling's
+camelCase fields (`isChildProduct`, `isWearableChildProduct`, `family`,
+`construction`, `risks`, `dimensions`, `minimumThicknessMm`,
+`safetyRestrictions`). Existing brief attribute wrappers are supported.
+Calls with `brief_id`, `concept_id` or `spec_id` also re-read stored brief
+and spec facts, so omitting hazards in a later request cannot clear them.
+These are conservative checks of declared facts, not physical safety
+certification; missing or dishonest facts cannot establish product safety.
+
+**P10 — ARABIC_EXACT_TEXT.** Deterministic validation rejects mixed Latin
+text and invisible direction/joining controls in Arabic. It computes
+expected RTL connectivity (resetting at word boundaries), and compares
+derived text against approved letters, dots, hamza forms, word order and
+diacritics. Only NFC canonical equivalence and surrounding whitespace are
+accepted. Studio creation validates the inscription; composition,
+validation, approval and export re-read the stored original and derived
+inscriptions. Typography preserves harakat and checks exact text before
+accepting shaped output. HarfBuzz and the existing glyph verifier remain
+responsible for vector rendering; this is not an optical validator for
+arbitrary image-model output. Existing human workshop approval remains
+required for exported master artwork.
+
+Rule enablement is not configurable: attempting to disable P1–P10 in
 `kernel/policies.yaml` fails the load. Thresholds are tunable; every change
 writes a ledger entry with old value, new value, actor, timestamp and reason.
 
