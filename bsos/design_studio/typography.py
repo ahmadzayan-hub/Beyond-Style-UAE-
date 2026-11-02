@@ -117,18 +117,13 @@ class TypographyEngine:
         self.upem = self._face.upem
 
     # ------------------------------------------------------------------
-    #: Tashkeel and superscript alef. Per the studio workflow, diacritics
-    #: are optional decorative layers — the verified letter skeleton never
-    #: depends on them, so they are stripped before shaping.
-    _TASHKEEL = set(range(0x064B, 0x0653)) | {0x0670}
-
     def normalize(self, text: str) -> str:
         # NFC canonical composition; strip zero-width controls that could
         # smuggle a different rendering than the audited sequence, and
-        # tashkeel (see _TASHKEEL).
+        # preserve customer-approved tashkeel.
         cleaned = "".join(
             ch for ch in unicodedata.normalize("NFC", text)
-            if ch not in ("​", "‎", "‏", "﻿") and ord(ch) not in self._TASHKEEL
+            if ch not in ("​", "‎", "‏", "﻿")
         )
         return cleaned.strip()
 
@@ -152,6 +147,9 @@ class TypographyEngine:
             return result
         buf = hb.Buffer()
         buf.add_str(normalized)
+        # Keep a separate cluster for each haraka so verification can prove
+        # that every approved mark produced a glyph.
+        buf.cluster_level = hb.BufferClusterLevel.MONOTONE_CHARACTERS
         buf.guess_segment_properties()
         direction = str(buf.direction)
         hb.shape(self._hbfont, buf)
@@ -185,6 +183,12 @@ class TypographyEngine:
         issues_ar: list[str] = []
         checks: list[dict[str, Any]] = []
 
+        from bsos.kernel.arabic import contains_arabic, compare_exact_text, validate_arabic_text
+
+        if contains_arabic(result.text):
+            issues.extend(validate_arabic_text(result.text)["issues"])
+            issues.extend(compare_exact_text(result.text, text))
+
         def issue(en: str, ar: str) -> None:
             issues.append(en)
             issues_ar.append(ar)
@@ -211,6 +215,22 @@ class TypographyEngine:
                 "unicode_name": letter_name(ch),
             }
             if idx not in clusters_covered:
+                # HarfBuzz may group adjacent combining marks (e.g. fatha
+                # + shadda) even with MONOTONE_CHARACTERS. Require the
+                # expected mark glyph in that shared mark cluster.
+                if unicodedata.combining(ch):
+                    start = idx
+                    while start > 0 and unicodedata.combining(text[start - 1]):
+                        start -= 1
+                    mark_stem = self._tt.getBestCmap().get(ord(ch), "")
+                    shared = [name for pos in range(start, idx + 1)
+                              for name in by_cluster.get(pos, [])]
+                    if mark_stem and any(name == mark_stem or name.startswith(mark_stem + ".")
+                                         for name in shared):
+                        entry["resolved_by"] = f"shared mark cluster {shared}"
+                        entry["ok"] = True
+                        checks.append(entry)
+                        continue
                 # A cluster may merge into the previous one via a required
                 # ligature (e.g. lam-alef). Accept only known ligature merges.
                 prev = by_cluster.get(idx - 1, [])
@@ -229,6 +249,9 @@ class TypographyEngine:
             glyph_names = by_cluster[idx]
             entry["glyphs"] = glyph_names
             stems = ARABIC_LETTER_GLYPH_STEMS.get(ch)
+            if unicodedata.combining(ch):
+                mark_stem = self._tt.getBestCmap().get(ord(ch))
+                stems = (mark_stem.lower(),) if mark_stem else (f"uni{ord(ch):04x}",)
             if stems is None:
                 # Latin/other: accept any non-notdef glyph for the cluster.
                 entry["ok"] = all(n not in (".notdef",) for n in glyph_names)

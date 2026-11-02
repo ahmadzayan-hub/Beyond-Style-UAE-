@@ -65,13 +65,13 @@ def test_zero_width_characters_are_stripped():
     assert engine.normalize("زهر​ان") == ZAHRAN
 
 
-def test_diacritics_strip_to_verified_skeleton():
-    """Customers type harakat; the verified skeleton must not depend on them."""
+def test_diacritics_preserved_in_verified_artwork():
+    """Customer-approved harakat must survive shaping."""
     from bsos.design_studio.typography import engine_for
 
     engine = engine_for("Amiri-Regular")
     shaped = engine.shape("زَهْرَان")
-    assert shaped.normalized_text == ZAHRAN
+    assert shaped.normalized_text == "زَهْرَان"
     assert shaped.verified
 
 

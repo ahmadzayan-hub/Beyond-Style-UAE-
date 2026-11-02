@@ -13,7 +13,7 @@ licensed asset custody → market abstraction → trend synthesis
 ```
 
 **Architectural principle: the kernel enforces, the prompt does not.**
-Every compliance rule (P1–P8) is kernel middleware on the tool-call path
+Every compliance rule (P1–P10) is kernel middleware on the tool-call path
 plus capability scoping on the agent registry — see `ARCHITECTURE.md` and
 `COMPLIANCE.md`.
 

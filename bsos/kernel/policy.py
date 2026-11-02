@@ -1,6 +1,6 @@
 """Policy engine.
 
-Eight non-negotiable rules (P1–P8) plus escalation policies. Each policy is a
+Ten non-negotiable rules (P1–P10) plus escalation policies. Each policy is a
 ``Policy`` object with an id, an applicability filter over the tool call
 context (via skill tags), and a check that yields a ``Decision``. The guard
 evaluates every applicable policy on every tool call and logs each evaluation
@@ -8,7 +8,7 @@ evaluates every applicable policy on every tool call and logs each evaluation
 
 Thresholds load from ``kernel/policies.yaml`` and are tunable (changes are
 ledgered). Rule *enablement* is not configurable: any attempt to disable
-P1–P8 through configuration fails the load.
+P1–P10 through configuration fails the load.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ import yaml
 
 from bsos.kernel.contracts import Decision, ToolContext
 
-CORE_POLICY_IDS = ("P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8")
+CORE_POLICY_IDS = tuple(f"P{i}" for i in range(1, 11))
 
 # Context tags that must never share a record, path, or export bundle (P8).
 COMMERCIAL_CONTEXTS = {"beyond_style", "bcgt"}
@@ -130,7 +130,7 @@ class PolicyEngine:
         for pid, cfg in policies_cfg.items():
             if pid in CORE_POLICY_IDS and isinstance(cfg, dict) and cfg.get("enabled") is False:
                 raise PolicyConfigError(
-                    f"{pid} cannot be disabled: core policies P1-P8 are not configurable off"
+                    f"{pid} cannot be disabled: core policies P1-P10 are not configurable off"
                 )
         for key, value in (raw.get("thresholds", {}) or {}).items():
             if key not in DEFAULT_THRESHOLDS:
@@ -356,6 +356,59 @@ def _p8_context_separation(engine: PolicyEngine, ctx: ToolContext) -> Decision |
     return None
 
 
+def _p9_child_safety(engine: PolicyEngine, ctx: ToolContext) -> Decision | None:
+    from bsos.kernel.child_safety import review_child_safety
+    from bsos.memory.domain import Brief, Concept, Spec
+
+    facts = {"payload": ctx.payload}
+    # Stored facts remain authoritative when a later caller omits hazards.
+    if ctx.db:
+        spec = ctx.db.get(Spec, ctx.payload["spec_id"]) if ctx.payload.get("spec_id") else None
+        concept_id = spec.concept_id if spec else ctx.payload.get("concept_id")
+        concept = ctx.db.get(Concept, concept_id) if concept_id else None
+        brief_id = concept.brief_id if concept else ctx.payload.get("brief_id")
+        brief = ctx.db.get(Brief, brief_id) if brief_id else None
+        if spec:
+            facts["spec"] = {"components": spec.components, "materials": spec.materials}
+        if brief:
+            facts["brief"] = brief.attributes
+    hazards, wearable = review_child_safety(facts)
+    if hazards:
+        return Decision("P9", "deny", "product safety FAIL: no override path",
+                        {"hazards": hazards})
+    if wearable:
+        # No acknowledgement flag can override this. A trusted dedicated
+        # human safety approval workflow is required before release.
+        return Decision("P9", "escalate", "wearable child product requires dedicated human safety approval")
+    return None
+
+
+def _p10_arabic_exact(engine: PolicyEngine, ctx: ToolContext) -> Decision | None:
+    from bsos.kernel.arabic import contains_arabic, compare_exact_text, validate_arabic_text
+    from bsos.memory.domain import DesignProject
+
+    approved = ctx.payload.get("approved_text", ctx.payload.get("inscription"))
+    derived = ctx.payload.get("derived_text", approved)
+    if ctx.tool in {"design.compose", "design.validate", "design.approve", "design.export_package"}:
+        project = ctx.db.get(DesignProject, ctx.payload.get("project_id")) if ctx.db else None
+        if project:
+            approved = project.inscription
+            derived = project.normalized_inscription
+    if not isinstance(approved, str) or not contains_arabic(approved):
+        return None
+    report = validate_arabic_text(approved)
+    issues = list(report["issues"])
+    if not isinstance(derived, str):
+        issues.append("derived text missing")
+    else:
+        issues.extend(validate_arabic_text(derived)["issues"])
+        issues.extend(compare_exact_text(approved, derived))
+    if issues:
+        return Decision("P10", "deny", "Arabic calligraphy correctness check failed",
+                        {"issues": issues, "connectivity": report["connectivity"]})
+    return None
+
+
 # ---- escalation policies -------------------------------------------------
 
 
@@ -454,6 +507,10 @@ def _build_policies() -> list[Policy]:
                "Meta/Instagram traffic must be official Graph API with OAuth; scraping is closed."),
         Policy("P8", "CONTEXT_SEPARATION", ("*",), _p8_context_separation,
                "Beyond Style/BCGT commercial data never mixes with RTA or public-sector context."),
+        Policy("P9", "CHILD_SAFETY", ("*",), _p9_child_safety,
+               "Critical child hazards are absolute rejections; no override."),
+        Policy("P10", "ARABIC_EXACT_TEXT", ("*",), _p10_arabic_exact,
+               "Arabic preserves approved letters, marks, hamza and word order."),
         Policy("E_LICENCE_EXPIRING", "LICENCE_EXPIRY_WARNING", ("licence_required",), _e_licence_expiring),
         Policy("E_GATE_MARGIN", "ORIGINALITY_MARGIN_REVIEW", ("concept_promote",), _e_gate_margin),
         Policy("E_SOURCE_CONTRADICTION", "PRICE_FLOOR_CONTRADICTION", ("pricing",), _e_price_floor_contradiction),
