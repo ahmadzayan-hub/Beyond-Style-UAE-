@@ -23,6 +23,27 @@ blocks a supervised launch, all should close before scaled marketing.
 
 No gate is claimed at 100 % beyond what the listed evidence reproduces.
 
+### High/Medium findings — reconciled 2026-11-04
+
+Findings #1–#7 (the four High/Medium defects plus three Medium
+accessibility/SEO items) remain **Fixed** as recorded in
+`docs/PROJECT_AUDIT_BASELINE.md`; no regression found on re-inspection.
+There are no open High-severity findings. The three remaining Gate G items
+are all **Low** severity:
+
+- **#9 (CI pipeline) — partially closed.** `.github/workflows/ci.yml` now
+  runs backend tests, a UI type-check/build, and a `pip-audit`/`npm audit`
+  report on every push — this did not exist when the gate was first marked
+  Open. What is still missing is a Playwright E2E job; journeys are still
+  only verified by running the scripts locally, not in CI.
+- **#8 (ESLint)** — still not configured in `ui/`; unchanged.
+- **#10 (rate limiting)** — still platform-level only; no app-level
+  limiter found on `/api/studio/*` in `bsos/api/app.py`; unchanged.
+
+Gate G stays **Open**. See `docs/BSOS_GENERTOR_BOUNDARY.md` for the
+separate product-boundary item (BSOS internal-operations vs. Genertor
+customer product), reconciled in the same pass.
+
 ## Reproduction commands
 
 ```bash
